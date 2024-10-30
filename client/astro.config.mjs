@@ -1,5 +1,11 @@
-// @ts-check
 import { defineConfig } from 'astro/config';
 
-// https://astro.build/config
-export default defineConfig({});
+export default defineConfig({
+  vite: {
+    define: {
+      'process.env.SPOTIFY_CLIENT_ID': JSON.stringify(process.env.SPOTIFY_CLIENT_ID),
+      'process.env.SPOTIFY_CLIENT_SECRET': JSON.stringify(process.env.SPOTIFY_CLIENT_SECRET),
+      'process.env.SPOTIFY_ACCESS_TOKEN': JSON.stringify(process.env.SPOTIFY_ACCESS_TOKEN),
+    },
+  },
+});

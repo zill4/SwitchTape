@@ -28,54 +28,138 @@ const { currentStep = 2, totalSteps = 4 } = Astro.props;
           type="url" 
           placeholder="Paste playlist URL here"
           class="url-input"
+          id="playlist-url"
         />
     
-        <button class="load-button">
+        <button class="load-button" id="load-button">
           Load playlist
         </button>
+
+        <div class="playlist-display hidden" id="playlist-display">
+            <!-- PlaylistDisplay will be inserted here -->
+        </div>
+
+        <button class="choose-destination-button hidden" id="choose-destination">
+        Choose Destination
+        </button>
+    </div>
 </div>
 
-
-
 <script>
-  const urlInput = document.querySelector('.url-input') as HTMLInputElement;
-  const loadButton = document.querySelector('.load-button') as HTMLButtonElement;
-  const backButton = document.querySelector('.back-button') as HTMLButtonElement;
+  const urlInput = document.getElementById('playlist-url') as HTMLInputElement;
+  const loadButton = document.getElementById('load-button') as HTMLButtonElement;
+  const playlistDisplay = document.getElementById('playlist-display') as HTMLDivElement;
+  const chooseDestination = document.getElementById('choose-destination') as HTMLButtonElement;
+    
+  // Function to extract playlist ID from URL
+  function getPlaylistId(url: string) {
+    const matches = url.match(/playlist\/([a-zA-Z0-9]+)/);
+    return matches ? matches[1] : null;
+  }
+
+  // Function to show error message
+  function showError(message: string) {
+    playlistDisplay.innerHTML = `
+      <div class="error" style="color: #ff6b6b; text-align: center; padding: 1rem;">
+        ${message}
+      </div>
+    `;
+    playlistDisplay.classList.remove('hidden');
+    chooseDestination.classList.add('hidden');
+  }
+
+  // Function to render playlist
+  function renderPlaylist(playlist: any) {
+    playlistDisplay.innerHTML = `
+      <div class="playlist-content">
+        <div class="playlist-header">
+          <img src="${playlist.images[0]?.url}" alt="${playlist.name}" class="playlist-image" />
+          <div class="playlist-info">
+            <h3>${playlist.name}</h3>
+            <p>${playlist.owner.display_name}</p>
+            <p>${playlist.tracks.total} tracks</p>
+          </div>
+          <button class="expand-button">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M19 9l-7 7-7-7" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </button>
+        </div>
+        
+        <div class="tracks-list">
+          ${playlist.tracks.items.map((item: any) => `
+            <div class="track-item">
+              <div class="checkbox">
+                <input type="checkbox" checked />
+                <span class="checkmark"></span>
+              </div>
+              <div class="track-info">
+                <h4>${item.track.name}</h4>
+                <p>${item.track.artists.map((artist: any) => artist.name).join(', ')}</p>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+    playlistDisplay.classList.remove('hidden');
+    chooseDestination.classList.remove('hidden');
+  }
 
   loadButton.addEventListener('click', async () => {
     const url = urlInput.value.trim();
-    
+    const playlistId = getPlaylistId(url);
+
     if (!url) {
-      alert('Please enter a playlist URL');
+      showError('Please enter a playlist URL');
+      return;
+    }
+
+    if (!playlistId) {
+      showError('Invalid Spotify playlist URL');
       return;
     }
 
     try {
+    console.log('Fetching playlist data...');
+      // Show loading state
       loadButton.disabled = true;
-      loadButton.textContent = 'Loading...';
+      loadButton.innerHTML = '<div class="spinner"></div>';
+      playlistDisplay.classList.add('hidden');
+      chooseDestination.classList.add('hidden');
+
+      // Fetch playlist data
+      const response = await fetch(`/api/spotify/playlists/${playlistId}`);
       
-      // Here you would add your API call to load the playlist
-      // const response = await fetch('/api/load-playlist', {
-      //   method: 'POST',
-      //   body: JSON.stringify({ url }),
-      //   headers: {
-      //     'Content-Type': 'application/json'
-      //   }
-      // });
-      
-      // if successful, redirect to next step
-      // window.location.href = '/select-songs';
+      if (!response.ok) {
+        if (response.status === 401) {
+          // Handle private playlist
+          playlistDisplay.innerHTML = `
+            <div class="private-playlist">
+              <p>This playlist is private. Please sign in with Spotify to view it.</p>
+              <button class="spotify-login" onclick="window.location.href='/api/auth/spotify'">
+                Sign in with Spotify
+              </button>
+            </div>
+          `;
+          playlistDisplay.classList.remove('hidden');
+        } else {
+          throw new Error('Failed to load playlist');
+        }
+        return;
+      }
+
+      const playlist = await response.json();
+      renderPlaylist(playlist);
+
     } catch (error) {
-      console.error('Failed to load playlist:', error);
-      alert('Failed to load playlist. Please try again.');
+      showError('Failed to load playlist. Please try again.');
+      console.error('Error:', error);
     } finally {
+      // Reset button state
       loadButton.disabled = false;
       loadButton.textContent = 'Load playlist';
     }
-  });
-
-  backButton.addEventListener('click', () => {
-    window.history.back();
   });
 </script>
 
@@ -175,5 +259,49 @@ const { currentStep = 2, totalSteps = 4 } = Astro.props;
 
   .load-button:hover {
     background: #6B4FF8;
+  }
+  .choose-destination-button {
+    background: #7C5DFA;
+    color: white;
+    padding: 1rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 1rem;
+  }
+
+  .choose-destination-button:hover {
+    background: #6B4FF8;
+  }
+  .hidden {
+    display: none;
+  }
+
+  .playlist-display {
+    margin-top: 1.5rem;
+  }
+
+  .loading {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+
+  /* Loading spinner */
+  .spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: white;
+    animation: spin 1s linear infinite;
+    margin: 0 auto;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
   }
 </style>

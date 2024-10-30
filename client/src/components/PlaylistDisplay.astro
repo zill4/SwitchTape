@@ -1,0 +1,212 @@
+---
+interface Track {
+  name: string;
+  artist: string;
+  image?: string;
+}
+
+interface Props {
+  playlistId: string;
+  isPublic?: boolean;
+  playlist?: {
+    name: string;
+    image: string;
+    tracks: Track[];
+    owner: string;
+    totalTracks: number;
+  };
+}
+
+const { playlistId, isPublic = true, playlist } = Astro.props;
+---
+
+<div class="playlist-container">
+  {isPublic && playlist ? (
+    <div class="playlist-content">
+      <div class="playlist-header">
+        <img src={playlist.image} alt={playlist.name} class="playlist-image" />
+        <div class="playlist-info">
+          <h3>{playlist.name}</h3>
+          <p>{playlist.owner}</p>
+          <p>{playlist.totalTracks} selected</p>
+        </div>
+        <button class="expand-button">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M19 9l-7 7-7-7" stroke="currentColor" stroke-width="2"/>
+          </svg>
+        </button>
+      </div>
+      
+      <div class="tracks-list">
+        {playlist.tracks.map(track => (
+          <div class="track-item">
+            <div class="checkbox">
+              <input type="checkbox" checked />
+              <span class="checkmark"></span>
+            </div>
+            <div class="track-info">
+              <h4>{track.name}</h4>
+              <p>{track.artist}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  ) : (
+    <div class="private-playlist">
+      <p>This playlist is private. Please sign in with Spotify to view it.</p>
+      <button class="spotify-login">
+        Sign in with Spotify
+      </button>
+    </div>
+  )}
+</div>
+
+<style>
+  .playlist-container {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .playlist-header {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    gap: 1rem;
+  }
+
+  .playlist-image {
+    width: 48px;
+    height: 48px;
+    border-radius: 4px;
+    object-fit: cover;
+  }
+
+  .playlist-info {
+    flex: 1;
+  }
+
+  .playlist-info h3 {
+    margin: 0;
+    font-size: 1.1rem;
+  }
+
+  .playlist-info p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .tracks-list {
+    padding: 1rem;
+  }
+
+  .track-item {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem;
+    gap: 1rem;
+    border-radius: 4px;
+    transition: background 0.2s;
+  }
+
+  .track-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .checkbox {
+    position: relative;
+    width: 20px;
+    height: 20px;
+  }
+
+  .checkbox input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .checkmark {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 20px;
+    height: 20px;
+    background: #7C5DFA;
+    border-radius: 4px;
+  }
+
+  .track-info h4 {
+    margin: 0;
+    font-size: 1rem;
+  }
+
+  .track-info p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .private-playlist {
+    padding: 2rem;
+    text-align: center;
+  }
+
+  .spotify-login {
+    background: #1DB954;
+    color: white;
+    border: none;
+    padding: 0.8rem 1.5rem;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-top: 1rem;
+    transition: background 0.2s;
+  }
+
+  .spotify-login:hover {
+    background: #1ed760;
+  }
+</style>
+
+<script>
+  // Function to extract playlist ID from URL
+  function getPlaylistId(url: string) {
+    const matches = url.match(/playlist\/([a-zA-Z0-9]+)/);
+    return matches ? matches[1] : null;
+  }
+
+  // Function to fetch playlist data
+  async function fetchPlaylistData(playlistId: string) {
+    try {
+      const response = await fetch(`/api/spotify/playlists/${playlistId}`);
+      if (!response.ok) {
+        throw new Error('Playlist not accessible');
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching playlist:', error);
+      return null;
+    }
+  }
+
+  // Handle URL input
+  const urlInput = document.querySelector('.url-input') as HTMLInputElement;
+  urlInput?.addEventListener('paste', async (e) => {
+    const url: string = e.clipboardData?.getData('text') || '';
+    const playlistId = getPlaylistId(url);
+    
+    if (playlistId) {
+      const playlistData = await fetchPlaylistData(playlistId);
+      if (playlistData) {
+        // Update UI with playlist data
+        // This would be handled by your framework's state management
+      } else {
+        // Show private playlist message
+      }
+    }
+  });
+</script>
