@@ -3,7 +3,6 @@ interface Props {
   currentStep?: number;
   totalSteps?: number;
 }
-
 const { currentStep = 2, totalSteps = 4 } = Astro.props;
 ---
 
@@ -46,11 +45,14 @@ const { currentStep = 2, totalSteps = 4 } = Astro.props;
 </div>
 
 <script>
+import { SpotifyService } from "../services/spotify";
+
   const urlInput = document.getElementById('playlist-url') as HTMLInputElement;
   const loadButton = document.getElementById('load-button') as HTMLButtonElement;
   const playlistDisplay = document.getElementById('playlist-display') as HTMLDivElement;
   const chooseDestination = document.getElementById('choose-destination') as HTMLButtonElement;
-    
+
+
   // Function to extract playlist ID from URL
   function getPlaylistId(url: string) {
     const matches = url.match(/playlist\/([a-zA-Z0-9]+)/);
@@ -129,9 +131,9 @@ const { currentStep = 2, totalSteps = 4 } = Astro.props;
       chooseDestination.classList.add('hidden');
 
       // Fetch playlist data
-      const response = await fetch(`/api/spotify/playlists/${playlistId}`);
-      
-      if (!response.ok) {
+      const response = await SpotifyService.getPlaylist(playlistId);
+
+      if (!response) {
         if (response.status === 401) {
           // Handle private playlist
           playlistDisplay.innerHTML = `
