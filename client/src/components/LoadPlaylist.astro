@@ -1,0 +1,179 @@
+---
+interface Props {
+  currentStep?: number;
+  totalSteps?: number;
+}
+
+const { currentStep = 2, totalSteps = 4 } = Astro.props;
+---
+
+<div class="container">
+    <header>
+        <h1>Select playlists to move</h1>
+        <div class="step-indicator">
+          <button class="back-button" aria-label="Go back">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <span>STEP {currentStep}/{totalSteps}</span>
+        </div>
+    </header>
+    
+      <div class="card">
+        <h2>Load playlist from URL</h2>
+        <p>Copy playlist URL and paste here:</p>
+        
+        <input 
+          type="url" 
+          placeholder="Paste playlist URL here"
+          class="url-input"
+        />
+    
+        <button class="load-button">
+          Load playlist
+        </button>
+</div>
+
+
+
+<script>
+  const urlInput = document.querySelector('.url-input') as HTMLInputElement;
+  const loadButton = document.querySelector('.load-button') as HTMLButtonElement;
+  const backButton = document.querySelector('.back-button') as HTMLButtonElement;
+
+  loadButton.addEventListener('click', async () => {
+    const url = urlInput.value.trim();
+    
+    if (!url) {
+      alert('Please enter a playlist URL');
+      return;
+    }
+
+    try {
+      loadButton.disabled = true;
+      loadButton.textContent = 'Loading...';
+      
+      // Here you would add your API call to load the playlist
+      // const response = await fetch('/api/load-playlist', {
+      //   method: 'POST',
+      //   body: JSON.stringify({ url }),
+      //   headers: {
+      //     'Content-Type': 'application/json'
+      //   }
+      // });
+      
+      // if successful, redirect to next step
+      // window.location.href = '/select-songs';
+    } catch (error) {
+      console.error('Failed to load playlist:', error);
+      alert('Failed to load playlist. Please try again.');
+    } finally {
+      loadButton.disabled = false;
+      loadButton.textContent = 'Load playlist';
+    }
+  });
+
+  backButton.addEventListener('click', () => {
+    window.history.back();
+  });
+</script>
+
+<style>
+  .container {
+    min-height: 100vh;
+    padding: 2rem;
+    background: #1a1b26;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  header {
+    width: 100%;
+    max-width: 800px;
+    margin-bottom: 2rem;
+  }
+
+  h1 {
+    font-size: 3rem;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 1rem;
+  }
+
+  .step-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    font-size: 1rem;
+    color: #fff;
+  }
+
+  .back-button {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 0.5rem;
+    display: flex;
+    align-items: center;
+    transition: opacity 0.2s;
+  }
+
+  .back-button:hover {
+    opacity: 0.8;
+  }
+
+  .card {
+    background: #252638;
+    padding: 2rem;
+    border-radius: 1rem;
+    width: 100%;
+    max-width: 800px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  h2 {
+    font-size: 2rem;
+    font-weight: bold;
+    text-align: center;
+  }
+
+  p {
+    text-align: center;
+    color: #a9adc1;
+  }
+
+  .url-input {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    border: none;
+    background: white;
+    font-size: 1rem;
+    width: 100%;
+  }
+
+  .url-input::placeholder {
+    color: #a9adc1;
+  }
+
+  .load-button {
+    background: #7C5DFA;
+    color: white;
+    padding: 1rem;
+    border: none;
+    border-radius: 4px; /* Changed from 2rem to 4px for partial rounding */
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .load-button:hover {
+    background: #6B4FF8;
+  }
+</style>
