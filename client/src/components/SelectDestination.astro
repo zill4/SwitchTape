@@ -1,0 +1,216 @@
+---
+interface Props {
+    currentStep?: number;
+    totalSteps?: number;
+}
+const { currentStep = 3, totalSteps = 4 } = Astro.props;
+
+const platforms = [
+    { id: 'spotify', name: 'Spotify', icon: 'fab fa-spotify' },
+    { id: 'apple', name: 'Apple Music', icon: 'fab fa-apple' },
+    { id: 'youtube', name: 'YouTube', icon: 'fab fa-youtube' },
+    { id: 'deezer', name: 'Deezer', icon: 'fas fa-music' },
+    { id: 'tidal', name: 'Tidal', icon: 'fas fa-wave-square' },
+    { id: 'amazon', name: 'Amazon Music', icon: 'fab fa-amazon' },
+    { id: 'soundcloud', name: 'SoundCloud', icon: 'fab fa-soundcloud' },
+];
+---
+
+<div class="container">
+    <header>
+        <h1>Select Destination</h1>
+        <div class="step-indicator">
+            <a href="/load-playlist" class="back-button">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+            <span>STEP {currentStep}/{totalSteps}</span>
+        </div>
+    </header>
+
+    <div class="search-container">
+        <i class="fas fa-search search-icon"></i>
+        <input 
+            type="text" 
+            id="platform-search" 
+            placeholder="Search a platform" 
+            class="search-input"
+        />
+    </div>
+
+    <div class="platforms-grid" id="platforms-grid">
+        {platforms.map(platform => (
+            <button class="platform-card" data-platform-id={platform.id}>
+                <i class={`platform-icon ${platform.icon}`}></i>
+                <span>{platform.name}</span>
+            </button>
+        ))}
+    </div>
+
+    <button class="next-button hidden" id="next-button">
+        Next Step <i class="fas fa-arrow-right"></i>
+    </button>
+</div>
+
+<script>
+import { PlaylistState } from '../state/playlistState';
+
+document.addEventListener('DOMContentLoaded', () => {
+    const state = PlaylistState.getState();
+    if (!state.playlist) {
+        window.location.href = '/load-playlist';
+        return;
+    }
+
+    const platformsGrid = document.getElementById('platforms-grid');
+    const searchInput = document.getElementById('platform-search') as HTMLInputElement;
+    const nextButton = document.getElementById('next-button');
+
+    platformsGrid?.addEventListener('click', (e) => {
+        const card = (e.target as HTMLElement).closest('.platform-card');
+        if (card) {
+            document.querySelector('.platform-card.selected')?.classList.remove('selected');
+            card.classList.add('selected');
+            nextButton?.classList.remove('hidden');
+            PlaylistState.setDestination((card as HTMLElement).dataset.platformId || '');
+        }
+    });
+
+    searchInput?.addEventListener('input', (e) => {
+        const search = (e.target as HTMLInputElement).value.toLowerCase();
+        document.querySelectorAll('.platform-card').forEach(card => {
+            const text = card.textContent?.toLowerCase() || '';
+            (card as HTMLElement).style.display = text.includes(search) ? 'flex' : 'none';
+        });
+    });
+
+    nextButton?.addEventListener('click', () => {
+        window.location.href = '/configure-transfer';
+    });
+});
+</script>
+
+<style>
+    .container {
+    min-height: 100vh;
+    padding: 2rem;
+    background: #1a1b26;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+}
+
+header {
+    width: 100%;
+    max-width: 1200px;
+    text-align: center;
+}
+
+h1 {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.step-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    color: #fff;
+    opacity: 0.8;
+}
+    .search-container {
+    position: relative;
+    width: 100%;
+    max-width: 1200px;
+}
+
+.search-input {
+    width: 100%;
+    padding: 1rem 1rem 1rem 3rem;
+    border-radius: 1rem;
+    border: none;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 1rem;
+}
+
+.search-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(255, 255, 255, 0.5);
+}
+
+    .platforms-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+    width: 100%;
+    max-width: 1200px;
+}
+
+.platform-card {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 1.5rem;
+    border: none;
+    background: rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 2rem;
+}
+
+    .platform-card:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+}
+
+.platform-card.selected {
+    border: 2px solid #7C5DFA;
+    background: rgba(124, 93, 250, 0.1);
+}
+
+.platform-logo {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.source-badge {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    background: #7C5DFA;
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.875rem;
+}
+.next-button {
+    background: #7C5DFA;
+    color: white;
+    padding: 1rem 2rem;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.next-button:hover {
+    background: #6B4FF8;
+}
+
+.hidden {
+    display: none;
+}
+</style>

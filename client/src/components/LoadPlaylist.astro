@@ -10,36 +10,47 @@ const { currentStep = 2, totalSteps = 4 } = Astro.props;
     <header>
         <h1>Select playlists to move</h1>
         <div class="step-indicator">
-          <button class="back-button" aria-label="Go back">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-          </button>
-          <span>STEP {currentStep}/{totalSteps}</span>
+            <button class="back-button" aria-label="Go back">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <span>STEP {currentStep}/{totalSteps}</span>
         </div>
     </header>
     
-      <div class="card">
+    <div class="card" id="url-input-card">
         <h2>Load playlist from URL</h2>
         <p>Copy playlist URL and paste here:</p>
         
         <input 
-          type="url" 
-          placeholder="Paste playlist URL here"
-          class="url-input"
-          id="playlist-url"
+            type="url" 
+            placeholder="Paste playlist URL here"
+            class="url-input"
+            id="playlist-url"
         />
     
         <button class="load-button" id="load-button">
-          Load playlist
+            Load playlist
         </button>
+    </div>
 
-        <div class="playlist-display hidden" id="playlist-display">
-            <!-- PlaylistDisplay will be inserted here -->
+    <div class="card hidden" id="playlist-card">
+        <h2>From Your Spotify Account</h2>
+        
+        <div class="account-row">
+            <div class="account-info">
+                <img src="/spotify-icon.svg" alt="Spotify" class="platform-icon" />
+                <span>My Spotify Music Library</span>
+            </div>
+            <div class="user-info">
+                <span class="username">Justin Crisp</span>
+                <i class="fas fa-arrow-right"></i>
+            </div>
         </div>
 
-        <button class="choose-destination-button hidden" id="choose-destination">
-        Choose Destination
+        <div class="playlist-list" id="playlist-display"></div>
+
+        <button class="choose-destination-button" id="next-button">
+            Choose Destination
         </button>
     </div>
 </div>
@@ -47,76 +58,64 @@ const { currentStep = 2, totalSteps = 4 } = Astro.props;
 <script>
 import { SpotifyService } from "../services/spotify";
 import { SpotifyPlaylist } from "../models/SpotifyPlaylist";
+import { PlaylistState } from '../state/playlistState';
 
-  const urlInput = document.getElementById('playlist-url') as HTMLInputElement;
-  const loadButton = document.getElementById('load-button') as HTMLButtonElement;
-  const playlistDisplay = document.getElementById('playlist-display') as HTMLDivElement;
-  const chooseDestination = document.getElementById('choose-destination') as HTMLButtonElement;
+const urlInput = document.getElementById('playlist-url') as HTMLInputElement;
+const loadButton = document.getElementById('load-button') as HTMLButtonElement;
+const playlistDisplay = document.getElementById('playlist-display') as HTMLDivElement;
+const nextButton = document.getElementById('next-button') as HTMLButtonElement;
+const urlInputCard = document.getElementById('url-input-card') as HTMLDivElement;
+const playlistCard = document.getElementById('playlist-card') as HTMLDivElement;
 
+function showError(message: string) {
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'error';
+    errorDiv.textContent = message;
+    urlInputCard.appendChild(errorDiv);
+    setTimeout(() => errorDiv.remove(), 3000);
+}
 
-  // Function to extract playlist ID from URL
-  function getPlaylistId(url: string) {
-    const matches = url.match(/playlist\/([a-zA-Z0-9]+)/);
-    return matches ? matches[1] : null;
-  }
-
-  // Function to show error message
-  function showError(message: string) {
+function renderPlaylistPreview(playlist: SpotifyPlaylist) {
+    urlInputCard.classList.add('hidden');
+    playlistCard.classList.remove('hidden');
+    
     playlistDisplay.innerHTML = `
-      <div class="error" style="color: #ff6b6b; text-align: center; padding: 1rem;">
-        ${message}
-      </div>
-    `;
-    playlistDisplay.classList.remove('hidden');
-    chooseDestination.classList.add('hidden');
-  }
-
-  // Function to render playlist
-  function renderPlaylist(playlist: SpotifyPlaylist) {
-    playlistDisplay.innerHTML = `
-      <div class="playlist-content">
         <div class="playlist-header">
-          <img src="${playlist.images[0]?.url || '/default-playlist.png'}" alt="${playlist.name}" class="playlist-image" />
-          <div class="playlist-info">
-            <h3>${playlist.name}</h3>
-            <p>${playlist.formatDuration(playlist.getPlaylistDuration())}</p>
-            <p>${playlist.getTrackCount()} tracks</p>
-          </div>
-          <button class="expand-button">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path d="M19 9l-7 7-7-7" stroke="currentColor" stroke-width="2"/>
-            </svg>
-          </button>
-        </div>
-        
-        <div class="tracks-list">
-          ${playlist.tracks.map((item) => `
-            <div class="track-item">
-              <div class="checkbox">
+            <div class="checkbox-wrapper">
                 <input type="checkbox" checked />
                 <span class="checkmark"></span>
-              </div>
-              <div class="track-info">
-                <h4>${item.track.name}</h4>
-                <p>${item.track.artists.map(artist => artist.name).join(', ')}</p>
-              </div>
             </div>
-          `).join('')}
+            <img src="${playlist.images[0]?.url || '/default-playlist.png'}" alt="${playlist.name}" class="playlist-cover" />
+            <div class="playlist-info">
+                <h3>${playlist.name}</h3>
+                <p>${playlist.getTrackCount()}/65 selected</p>
+            </div>
+            <button class="expand-button">
+                <i class="fas fa-chevron-down"></i>
+            </button>
         </div>
-      </div>
+
+        <div class="tracks-list">
+            ${playlist.tracks.map((track, index) => `
+                <div class="track-item">
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" checked id="track-${index}" />
+                        <span class="checkmark"></span>
+                    </div>
+                    <img src="${track.track.album.images[0]?.url || '/default-track.png'}" alt="${track.track.name}" class="track-cover" />
+                    <div class="track-info">
+                        <h4>${track.track.name}</h4>
+                        <p>${track.track.artists.map(artist => artist.name).join(', ')}</p>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
     `;
-    playlistDisplay.classList.remove('hidden');
-    chooseDestination.classList.remove('hidden');
 }
 
 loadButton.addEventListener('click', async () => {
     const url = urlInput.value.trim();
-    const playlistId = getPlaylistId(url);
-
-    if (!url) {
-        showError('Please enter a playlist URL');
-        return;
-    }
+    const playlistId = url.match(/playlist\/([a-zA-Z0-9]+)/)?.[1];
 
     if (!playlistId) {
         showError('Invalid Spotify playlist URL');
@@ -124,49 +123,27 @@ loadButton.addEventListener('click', async () => {
     }
 
     try {
-        // Show loading state with message
         loadButton.disabled = true;
         loadButton.innerHTML = '<div class="spinner"></div>';
-        playlistDisplay.innerHTML = `
-            <div class="loading-state">
-                <div class="spinner"></div>
-                <p>Loading playlist...</p>
-                <small>This may take a few moments</small>
-            </div>
-        `;
-        playlistDisplay.classList.remove('hidden');
-        chooseDestination.classList.add('hidden');
-
-        // Fetch playlist data
-        const playlist = await SpotifyService.getPlaylist(playlistId);
         
-        // Render the playlist
-        renderPlaylist(playlist);
-
+        const playlist = await SpotifyService.getPlaylist(playlistId);
+        PlaylistState.setPlaylist(playlist);
+        renderPlaylistPreview(playlist);
     } catch (error) {
-        if (error instanceof Error && error.message.includes('401')) {
-            playlistDisplay.innerHTML = `
-                <div class="private-playlist">
-                    <p>This playlist is private. Please sign in with Spotify to view it.</p>
-                    <button class="spotify-login" onclick="window.location.href='/api/auth/spotify'">
-                        Sign in with Spotify
-                    </button>
-                </div>
-            `;
-        } else {
-            showError('Failed to load playlist. Please try again.');
-        }
-        console.error('Error:', error);
+        showError(error instanceof Error ? error.message : 'Failed to load playlist');
     } finally {
-              // Reset button state
-              loadButton.disabled = false;
+        loadButton.disabled = false;
         loadButton.textContent = 'Load playlist';
     }
-  });
+});
+
+nextButton.addEventListener('click', () => {
+    window.location.href = '/select-destination';
+});
 </script>
 
 <style>
-  .container {
+.container {
     min-height: 100vh;
     padding: 2rem;
     background: #1a1b26;
@@ -174,203 +151,264 @@ loadButton.addEventListener('click', async () => {
     display: flex;
     flex-direction: column;
     align-items: center;
-  }
+}
 
-  header {
+header {
     width: 100%;
     max-width: 800px;
     margin-bottom: 2rem;
-  }
+    text-align: center;
+}
 
-  h1 {
+h1 {
     font-size: 3rem;
     font-weight: bold;
-    text-align: center;
     margin-bottom: 1rem;
-  }
+}
 
-  .step-indicator {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 1rem;
-    font-size: 1rem;
-    color: #fff;
-  }
-
-  .back-button {
-    background: none;
-    border: none;
-    color: white;
-    cursor: pointer;
-    padding: 0.5rem;
-    display: flex;
-    align-items: center;
-    transition: opacity 0.2s;
-  }
-
-  .back-button:hover {
-    opacity: 0.8;
-  }
-
-  .card {
-    background: #252638;
+.card {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 1.5rem;
     padding: 2rem;
-    border-radius: 1rem;
     width: 100%;
     max-width: 800px;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-  }
-
-  h2 {
-    font-size: 2rem;
-    font-weight: bold;
     text-align: center;
-  }
+}
 
-  p {
-    text-align: center;
-    color: #a9adc1;
-  }
+h2 {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+}
 
-  .url-input {
+p {
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 2rem;
+}
+
+.url-input {
+    width: 100%;
     padding: 1rem;
     border-radius: 0.5rem;
     border: none;
     background: white;
     font-size: 1rem;
+    margin-bottom: 1rem;
+}
+
+.load-button {
     width: 100%;
-  }
-
-  .url-input::placeholder {
-    color: #a9adc1;
-  }
-
-  .load-button {
+    padding: 1rem;
     background: #7C5DFA;
     color: white;
-    padding: 1rem;
     border: none;
-    border-radius: 4px; /* Changed from 2rem to 4px for partial rounding */
+    border-radius: 2rem;
     font-size: 1rem;
     cursor: pointer;
     transition: background 0.2s;
-  }
+}
 
-  .load-button:hover {
+.load-button:hover {
     background: #6B4FF8;
-  }
-  .choose-destination-button {
-    background: #7C5DFA;
-    color: white;
-    padding: 1rem;
-    border: none;
-    border-radius: 4px;
-    font-size: 1rem;
-    cursor: pointer;
-    width: 100%;
-    margin-top: 1rem;
-  }
+}
 
-  .choose-destination-button:hover {
-    background: #6B4FF8;
-  }
-  .hidden {
+/* Rest of the styles for playlist preview remain the same */
+
+.hidden {
     display: none;
-  }
+}
 
-  .playlist-display {
-    margin-top: 1.5rem;
-  }
+.error {
+    color: #ff6b6b;
+    text-align: center;
+    padding: 1rem;
+    margin-top: 1rem;
+}
 
-  .loading {
-    opacity: 0.7;
-    cursor: not-allowed;
-  }
-
-  /* Loading spinner */
-  .spinner {
-    width: 24px;
-    height: 24px;
-    border: 3px solid rgba(255, 255, 255, 0.3);
+.spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
     border-radius: 50%;
     border-top-color: white;
     animation: spin 1s linear infinite;
     margin: 0 auto;
-  }
+}
 
-  @keyframes spin {
+@keyframes spin {
     to {
-      transform: rotate(360deg);
+        transform: rotate(360deg);
     }
-  }
+}
 
-  .loading-state {
-    text-align: center;
-    padding: 2rem;
-    color: #a9adc1;
-  }
-
-  .loading-state .spinner {
-    margin-bottom: 1rem;
-  }
-
-  .loading-state p {
-    margin-bottom: 0.5rem;
-    color: white;
-  }
-
-  .loading-state small {
-    color: #a9adc1;
-  }
-
-  .playlist-image {
-    width: 64px;
-    height: 64px;
-    border-radius: 4px;
-    object-fit: cover;
-  }
-
-  .playlist-header {
+.playlist-header {
     display: flex;
     align-items: center;
     gap: 1rem;
     padding: 1rem;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 4px;
-  }
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+}
 
-  .playlist-info {
+.playlist-cover {
+    width: 64px;
+    height: 64px;
+    border-radius: 0.5rem;
+    object-fit: cover;
+}
+
+.playlist-info {
     flex: 1;
-  }
+    text-align: left;
+}
 
-  .playlist-info h3 {
+.playlist-info h3 {
+    font-size: 1.25rem;
     margin: 0;
-    font-size: 1.2rem;
-  }
+}
 
-  .playlist-info p {
+.playlist-info p {
     margin: 0.25rem 0 0 0;
-    font-size: 0.9rem;
-    color: #a9adc1;
-  }
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.7);
+}
 
-  .tracks-list {
+.tracks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
     margin-top: 1rem;
-  }
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
 
-  .track-item {
+.tracks-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.tracks-list::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.tracks-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+}
+
+.track-item {
     display: flex;
     align-items: center;
     gap: 1rem;
     padding: 0.75rem;
-    border-radius: 4px;
-    transition: background 0.2s;
-  }
-
-  .track-item:hover {
     background: rgba(255, 255, 255, 0.05);
-  }
+    border-radius: 0.5rem;
+    transition: background 0.2s;
+}
+
+.track-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.track-cover {
+    width: 40px;
+    height: 40px;
+    border-radius: 0.25rem;
+    object-fit: cover;
+}
+
+.track-info {
+    flex: 1;
+    text-align: left;
+}
+
+.track-info h4 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: normal;
+}
+
+.track-info p {
+    margin: 0.25rem 0 0 0;
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.checkbox-wrapper {
+    position: relative;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+.checkbox-wrapper input[type="checkbox"] {
+    opacity: 0;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+    z-index: 1;
+}
+
+.checkmark {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 24px;
+    height: 24px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.checkbox-wrapper input[type="checkbox"]:checked + .checkmark {
+    background: #7C5DFA;
+}
+
+.checkmark:after {
+    content: '✓';
+    position: absolute;
+    display: none;
+    color: white;
+    font-size: 14px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.checkbox-wrapper input[type="checkbox"]:checked + .checkmark:after {
+    display: block;
+}
+
+.choose-destination-button {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #7C5DFA;
+    color: white;
+    padding: 1rem 2rem;
+    border: none;
+    border-radius: 2rem;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: calc(100% - 4rem);
+    max-width: 768px;
+    z-index: 10;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.choose-destination-button:hover {
+    background: #6B4FF8;
+    transform: translateX(-50%) translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+/* Add smooth scrollbar for Firefox */
+.tracks-list {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.1);
+}
 </style>
