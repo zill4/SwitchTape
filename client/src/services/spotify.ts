@@ -1,8 +1,10 @@
 import { ResponseHandler } from "./responseHandler";
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { app } from '../../firebase';
 
 export class SpotifyService {
     private static baseUrl = 'https://api.spotify.com/v1';
-    private static tokenUrl = 'https://accounts.spotify.com/api/token';
+    private static functions = getFunctions(app);
     
     private static async getAccessToken(): Promise<string> {
         // Try to get token from localStorage first
@@ -19,30 +21,23 @@ export class SpotifyService {
     }
     
     private static async refreshAccessToken(): Promise<string> {
-        const params = new URLSearchParams();
-        params.append('grant_type', 'client_credentials');
-        params.append('client_id', import.meta.env.SPOTIFY_CLIENT_ID);
-        params.append('client_secret', import.meta.env.SPOTIFY_CLIENT_SECRET);
-        console.log('params', params);
-        console.log('tokenUrl', import.meta.env.SPOTIFY_CLIENT_ID);
-        console.log('clientSecret', import.meta.env.SPOTIFY_CLIENT_SECRET);
-        const response = await fetch(this.tokenUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: params
-        });
-  
-        const data = await response.json();
-        console.log('data', data);
-        // Store the new token and its expiry time
-        localStorage.setItem('spotify_access_token', data.access_token);
-        localStorage.setItem('spotify_token_expiry', 
-            (Date.now() + (data.expires_in * 1000)).toString()
-        );
-        
-        return data.access_token;
+        try {
+            const getSpotifyToken = httpsCallable(this.functions, 'getSpotifyToken');
+            const result = await getSpotifyToken();
+            
+            const { access_token, expires_in } = result.data as any;
+            
+            // Store the new token and its expiry time
+            localStorage.setItem('spotify_access_token', access_token);
+            localStorage.setItem('spotify_token_expiry', 
+                (Date.now() + (expires_in * 1000)).toString()
+            );
+            
+            return access_token;
+        } catch (error) {
+            console.error('Error refreshing token:', error);
+            throw error;
+        }
     }
   
     static async getPlaylist(playlistId: string): Promise<any> {
