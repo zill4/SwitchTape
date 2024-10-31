@@ -46,6 +46,7 @@ const { currentStep = 2, totalSteps = 4 } = Astro.props;
 
 <script>
 import { SpotifyService } from "../services/spotify";
+import { SpotifyPlaylist } from "../models/SpotifyPlaylist";
 
   const urlInput = document.getElementById('playlist-url') as HTMLInputElement;
   const loadButton = document.getElementById('load-button') as HTMLButtonElement;
@@ -71,15 +72,15 @@ import { SpotifyService } from "../services/spotify";
   }
 
   // Function to render playlist
-  function renderPlaylist(playlist: any) {
+  function renderPlaylist(playlist: SpotifyPlaylist) {
     playlistDisplay.innerHTML = `
       <div class="playlist-content">
         <div class="playlist-header">
-          <img src="${playlist.images[0]?.url}" alt="${playlist.name}" class="playlist-image" />
+          <img src="${playlist.images[0]?.url || '/default-playlist.png'}" alt="${playlist.name}" class="playlist-image" />
           <div class="playlist-info">
             <h3>${playlist.name}</h3>
-            <p>${playlist.owner.display_name}</p>
-            <p>${playlist.tracks.total} tracks</p>
+            <p>${playlist.formatDuration(playlist.getPlaylistDuration())}</p>
+            <p>${playlist.getTrackCount()} tracks</p>
           </div>
           <button class="expand-button">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -89,7 +90,7 @@ import { SpotifyService } from "../services/spotify";
         </div>
         
         <div class="tracks-list">
-          ${playlist.tracks.items.map((item: any) => `
+          ${playlist.tracks.map((item) => `
             <div class="track-item">
               <div class="checkbox">
                 <input type="checkbox" checked />
@@ -97,7 +98,7 @@ import { SpotifyService } from "../services/spotify";
               </div>
               <div class="track-info">
                 <h4>${item.track.name}</h4>
-                <p>${item.track.artists.map((artist: any) => artist.name).join(', ')}</p>
+                <p>${item.track.artists.map(artist => artist.name).join(', ')}</p>
               </div>
             </div>
           `).join('')}
@@ -106,61 +107,60 @@ import { SpotifyService } from "../services/spotify";
     `;
     playlistDisplay.classList.remove('hidden');
     chooseDestination.classList.remove('hidden');
-  }
+}
 
-  loadButton.addEventListener('click', async () => {
+loadButton.addEventListener('click', async () => {
     const url = urlInput.value.trim();
     const playlistId = getPlaylistId(url);
 
     if (!url) {
-      showError('Please enter a playlist URL');
-      return;
+        showError('Please enter a playlist URL');
+        return;
     }
 
     if (!playlistId) {
-      showError('Invalid Spotify playlist URL');
-      return;
+        showError('Invalid Spotify playlist URL');
+        return;
     }
 
     try {
-    console.log('Fetching playlist data...');
-      // Show loading state
-      loadButton.disabled = true;
-      loadButton.innerHTML = '<div class="spinner"></div>';
-      playlistDisplay.classList.add('hidden');
-      chooseDestination.classList.add('hidden');
-
-      // Fetch playlist data
-      const response = await SpotifyService.getPlaylist(playlistId);
-
-      if (!response) {
-        if (response.status === 401) {
-          // Handle private playlist
-          playlistDisplay.innerHTML = `
-            <div class="private-playlist">
-              <p>This playlist is private. Please sign in with Spotify to view it.</p>
-              <button class="spotify-login" onclick="window.location.href='/api/auth/spotify'">
-                Sign in with Spotify
-              </button>
+        // Show loading state with message
+        loadButton.disabled = true;
+        loadButton.innerHTML = '<div class="spinner"></div>';
+        playlistDisplay.innerHTML = `
+            <div class="loading-state">
+                <div class="spinner"></div>
+                <p>Loading playlist...</p>
+                <small>This may take a few moments</small>
             </div>
-          `;
-          playlistDisplay.classList.remove('hidden');
-        } else {
-          throw new Error('Failed to load playlist');
-        }
-        return;
-      }
+        `;
+        playlistDisplay.classList.remove('hidden');
+        chooseDestination.classList.add('hidden');
 
-      const playlist = await response.json();
-      renderPlaylist(playlist);
+        // Fetch playlist data
+        const playlist = await SpotifyService.getPlaylist(playlistId);
+        
+        // Render the playlist
+        renderPlaylist(playlist);
 
     } catch (error) {
-      showError('Failed to load playlist. Please try again.');
-      console.error('Error:', error);
+        if (error instanceof Error && error.message.includes('401')) {
+            playlistDisplay.innerHTML = `
+                <div class="private-playlist">
+                    <p>This playlist is private. Please sign in with Spotify to view it.</p>
+                    <button class="spotify-login" onclick="window.location.href='/api/auth/spotify'">
+                        Sign in with Spotify
+                    </button>
+                </div>
+            `;
+        } else {
+            showError('Failed to load playlist. Please try again.');
+        }
+        console.error('Error:', error);
     } finally {
-      // Reset button state
-      loadButton.disabled = false;
-      loadButton.textContent = 'Load playlist';
+              // Reset button state
+              loadButton.disabled = false;
+        loadButton.textContent = 'Load playlist';
     }
   });
 </script>
@@ -305,5 +305,72 @@ import { SpotifyService } from "../services/spotify";
     to {
       transform: rotate(360deg);
     }
+  }
+
+  .loading-state {
+    text-align: center;
+    padding: 2rem;
+    color: #a9adc1;
+  }
+
+  .loading-state .spinner {
+    margin-bottom: 1rem;
+  }
+
+  .loading-state p {
+    margin-bottom: 0.5rem;
+    color: white;
+  }
+
+  .loading-state small {
+    color: #a9adc1;
+  }
+
+  .playlist-image {
+    width: 64px;
+    height: 64px;
+    border-radius: 4px;
+    object-fit: cover;
+  }
+
+  .playlist-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+  }
+
+  .playlist-info {
+    flex: 1;
+  }
+
+  .playlist-info h3 {
+    margin: 0;
+    font-size: 1.2rem;
+  }
+
+  .playlist-info p {
+    margin: 0.25rem 0 0 0;
+    font-size: 0.9rem;
+    color: #a9adc1;
+  }
+
+  .tracks-list {
+    margin-top: 1rem;
+  }
+
+  .track-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem;
+    border-radius: 4px;
+    transition: background 0.2s;
+  }
+
+  .track-item:hover {
+    background: rgba(255, 255, 255, 0.05);
   }
 </style>

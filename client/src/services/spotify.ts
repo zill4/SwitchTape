@@ -1,6 +1,7 @@
 import { ResponseHandler } from "./responseHandler";
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { app } from '../../firebase';
+import { SpotifyPlaylist } from "../models/SpotifyPlaylist";
 
 export class SpotifyService {
     private static baseUrl = 'https://api.spotify.com/v1';
@@ -40,15 +41,29 @@ export class SpotifyService {
         }
     }
   
-    static async getPlaylist(playlistId: string): Promise<any> {
+    static async getPlaylist(playlistId: string): Promise<SpotifyPlaylist> {
         return ResponseHandler.retryWithNewToken(
             async (token: string) => {
-                return fetch(`${this.baseUrl}/playlists/${playlistId}`, {
+                const response = await fetch(`${this.baseUrl}/playlists/${playlistId}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     }
                 });
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch playlist: ${response.statusText}`);
+                }
+    
+                const data = await response.json();
+                
+                // Validate essential data
+                if (!data.tracks || !data.name) {
+                    throw new Error('Invalid playlist data received');
+                }
+                
+                // Return new SpotifyPlaylist instance
+                return new SpotifyPlaylist(data);
             },  
             async () => await this.getAccessToken()
         );

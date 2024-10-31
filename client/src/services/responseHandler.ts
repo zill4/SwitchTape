@@ -64,12 +64,20 @@ export class ResponseHandler {
     }
 
     static async retryWithNewToken<T>(
-        requestFn: (token: string) => Promise<Response>,
+        requestFn: (token: string) => Promise<T>,
         getNewToken: () => Promise<string>
     ): Promise<T> {
-        return this.handleResponse(async () => {
+        try {
             const token = await getNewToken();
-            return await requestFn(token);
-        });
+            const response = await requestFn(token);
+            return response;
+        } catch (error) {
+            // If token is expired or invalid, try one more time with a new token
+            if (error instanceof Error && error.message.includes('token')) {
+                const newToken = await getNewToken();
+                return await requestFn(newToken);
+            }
+            throw error;
+        }
     }
 }
