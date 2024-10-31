@@ -2,17 +2,18 @@
 interface Props {
     currentStep?: number;
     totalSteps?: number;
+    platform?: string;
 }
-const { currentStep = 3, totalSteps = 4 } = Astro.props;
+const { currentStep = 3, totalSteps = 4, platform = 'spotify' } = Astro.props;
 
 const platforms = [
-    { id: 'spotify', name: 'Spotify', icon: 'fab fa-spotify' },
-    { id: 'apple', name: 'Apple Music', icon: 'fab fa-apple' },
-    { id: 'youtube', name: 'YouTube', icon: 'fab fa-youtube' },
-    { id: 'deezer', name: 'Deezer', icon: 'fas fa-music' },
-    { id: 'tidal', name: 'Tidal', icon: 'fas fa-wave-square' },
-    { id: 'amazon', name: 'Amazon Music', icon: 'fab fa-amazon' },
-    { id: 'soundcloud', name: 'SoundCloud', icon: 'fab fa-soundcloud' },
+    { id: 'spotify', name: 'Spotify', icon: 'fab fa-spotify', isSource: platform === 'spotify' },
+    { id: 'apple', name: 'Apple Music', icon: 'fab fa-apple', isSource: platform === 'apple' },
+    { id: 'youtube', name: 'YouTube', icon: 'fab fa-youtube', isSource: platform === 'youtube' },
+    { id: 'deezer', name: 'Deezer', icon: 'fas fa-music', isSource: platform === 'deezer' },
+    { id: 'tidal', name: 'Tidal', icon: 'fas fa-wave-square', isSource: platform === 'tidal' },
+    { id: 'amazon', name: 'Amazon Music', icon: 'fab fa-amazon', isSource: platform === 'amazon' },
+    { id: 'soundcloud', name: 'SoundCloud', icon: 'fab fa-soundcloud', isSource: platform === 'soundcloud' },
 ];
 ---
 
@@ -39,17 +40,17 @@ const platforms = [
 
     <div class="platforms-grid" id="platforms-grid">
         {platforms.map(platform => (
-            <button class="platform-card" data-platform-id={platform.id}>
-                <i class={`platform-icon ${platform.icon}`}></i>
-                <span>{platform.name}</span>
+            <button 
+                class={`platform-card ${platform.isSource ? 'source' : ''}`} 
+                data-platform-id={platform.id}
+                disabled={platform.isSource}
+            >
+                {platform.isSource && <span class="source-badge">Source</span>}
+                <img src={platform.icon} alt={platform.name} class="platform-logo" />
+                <span class="platform-name">{platform.name}</span>
             </button>
         ))}
     </div>
-
-    <button class="next-button hidden" id="next-button">
-        Next Step <i class="fas fa-arrow-right"></i>
-    </button>
-</div>
 
 <script>
 import { PlaylistState } from '../state/playlistState';
