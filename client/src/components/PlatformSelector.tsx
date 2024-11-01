@@ -4,6 +4,8 @@ import { PlaylistState } from '../state/playlistState';
 import { AppleMusicService } from '../services/AppleMusic';
 import type { GenericTrack } from '../models/Playlist';
 import './SelectDestination.css';
+import type { Playlist } from '../models/Playlist';
+import type { SpotifyPlaylist } from '../models/SpotifyPlaylist';
 
 interface Platform {
   id: string;
@@ -23,6 +25,25 @@ export function PlatformSelector({ sourcePlatform = 'spotify' }) {
   const [error, setError] = useState<string | null>(null);
   const [isConverting, setIsConverting] = useState(false);
   const [progress, setProgress] = useState<ConversionProgress | null>(null);
+  const [sourcePlaylist, setSourcePlaylist] = useState<Playlist | SpotifyPlaylist | null>(null);
+
+  useEffect(() => {
+    // Subscribe to state changes
+    const unsubscribe = PlaylistState.subscribe(() => {
+      setSourcePlaylist(PlaylistState.getSourcePlaylist());
+    });
+
+    // Check if there's already a playlist in state
+    const existingPlaylist = PlaylistState.getSourcePlaylist();
+    if (existingPlaylist) {
+      setSourcePlaylist(existingPlaylist);
+    } else {
+      // Redirect if no playlist is selected
+      window.location.href = '/load-playlist';
+    }
+
+    return () => unsubscribe();
+  }, []);
 
   const platforms: Platform[] = [
     { id: 'spotify', name: 'Spotify', icon: 'fab fa-spotify', isSource: sourcePlatform === 'spotify' },
@@ -48,17 +69,22 @@ export function PlatformSelector({ sourcePlatform = 'spotify' }) {
   };
 
   const handleConversion = async () => {
-    const playlist = PlaylistState.getSourcePlaylist();
-    if (!playlist) return;
+    if (!sourcePlaylist) {
+      setError('No playlist selected');
+      return;
+    }
 
     setIsConverting(true);
-    setProgress({ converted: 0, total: playlist.tracks.length, tracks: [] });
+    setProgress({ converted: 0, total: sourcePlaylist.tracks.length, tracks: [] });
 
     try {
       const appleMusic = AppleMusicService.getInstance();
-      const playlistId = await appleMusic.createPlaylist(playlist.name, playlist.description);
+      const playlistId = await appleMusic.createPlaylist(
+        sourcePlaylist.name, 
+        'description' in sourcePlaylist ? sourcePlaylist.description : ''
+      );
 
-      for (const track of playlist.tracks) {
+      for (const track of sourcePlaylist.tracks) {
         const trackId = await appleMusic.searchTrack(track);
         setProgress(prev => {
           if (!prev) return null;
@@ -74,7 +100,7 @@ export function PlatformSelector({ sourcePlatform = 'spotify' }) {
         });
       }
 
-      await appleMusic.addTracksToPlaylist(playlistId, playlist.tracks);
+      await appleMusic.addTracksToPlaylist(playlistId, sourcePlaylist.tracks);
     } catch (error) {
       setError('Failed to convert playlist');
     } finally {

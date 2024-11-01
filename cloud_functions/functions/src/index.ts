@@ -64,7 +64,13 @@ export const getMusicKitToken = functions.https.onCall(async (data, context) => 
       name: 'projects/772100231536/secrets/APPLE_MUSIC_PRIVATE_KEY/versions/latest'
     });
 
-    const privateKey = version.payload?.data?.toString() || '';
+    // Get the private key and ensure it's properly formatted
+    let privateKey = version.payload?.data?.toString() || '';
+    
+    // If the key doesn't include the PEM headers, add them
+    if (!privateKey.includes('-----BEGIN PRIVATE KEY-----')) {
+      privateKey = `-----BEGIN PRIVATE KEY-----\n${privateKey}\n-----END PRIVATE KEY-----`;
+    }
     
     // Get other required values from Firebase config
     const config = functions.config().musickit;
@@ -77,7 +83,11 @@ export const getMusicKitToken = functions.https.onCall(async (data, context) => 
 
     const token = jwt.sign(payload, privateKey, {
       algorithm: 'ES256',
-      keyid: config.key_id
+      keyid: config.key_id,
+      header: {
+        alg: 'ES256',
+        kid: config.key_id
+      }
     });
 
     return { token };

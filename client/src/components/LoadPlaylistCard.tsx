@@ -1,6 +1,6 @@
 // LoadPlaylistCard.tsx - Preact Component
 import { h } from 'preact';
-import { useState, useRef } from 'preact/hooks';
+import { useState, useRef, useEffect } from 'preact/hooks';
 import { SpotifyService } from '../services/spotify';
 import { PlaylistState } from '../state/playlistState';
 import type { Playlist } from '../models/Playlist';
@@ -10,7 +10,7 @@ import './LoadPlaylist.css';
 export function LoadPlaylistCard() {
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
-  const [playlist, setPlaylist] = useState<Playlist | null | SpotifyPlaylist>(null);
+  const [playlist, setPlaylist] = useState<Playlist | SpotifyPlaylist | null>(null);
   const [playlistImage, setPlaylistImage] = useState<string>('');
   
   const urlInputRef = useRef<HTMLInputElement>(null);
@@ -51,6 +51,24 @@ export function LoadPlaylistCard() {
       setIsLoading(false);
     }
   };
+
+  // Subscribe to state changes
+  useEffect(() => {
+    const unsubscribe = PlaylistState.subscribe(() => {
+      setPlaylist(PlaylistState.getSourcePlaylist());
+    });
+    
+    // Check if there's already a playlist in state
+    const existingPlaylist = PlaylistState.getSourcePlaylist();
+    if (existingPlaylist) {
+      setPlaylist(existingPlaylist);
+      if (playlistCardRef.current) {
+        playlistCardRef.current.classList.remove('hidden');
+      }
+    }
+
+    return () => unsubscribe();
+  }, []);
 
   return (
     <>

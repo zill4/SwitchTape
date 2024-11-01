@@ -10,6 +10,7 @@
         "firebase-debug.*.log",
         "*.local"
       ],
+      "serviceAccount": "switchtape-app@appspot.gserviceaccount.com",
       "predeploy": [
         "npm --prefix \"$RESOURCE_DIR\" run build"
       ]
