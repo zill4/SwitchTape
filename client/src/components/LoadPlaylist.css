@@ -1,8 +1,7 @@
 .container {
-    min-height: 100vh;
-    padding: 2rem;
-    background: #1a1b26;
-    color: white;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -10,30 +9,20 @@
 
 header {
     width: 100%;
-    max-width: 800px;
-    margin-bottom: 2rem;
     text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    margin-bottom: 3rem;
 }
 
 h1 {
     font-size: 3rem;
     font-weight: bold;
     margin-bottom: 1rem;
-    color: white;
-}
-h2 {
-    font-size: 3rem;
-    font-weight: bold;
-    margin-bottom: 1rem;
-    color: white;
 }
 
 .step-indicator {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 1rem;
 }
 
@@ -46,11 +35,10 @@ h2 {
 }
 
 .card {
+    width: 100%;
     background: rgba(255, 255, 255, 0.05);
     border-radius: 2rem;
     padding: 3rem;
-    width: 100%;
-    max-width: 800px;
     text-align: center;
     backdrop-filter: blur(10px);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
@@ -123,7 +111,7 @@ p {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem;
+    padding: 1rem 1.5rem;
     background: rgba(255, 255, 255, 0.1);
     border-radius: 1rem;
     margin: 2rem 0;
@@ -136,14 +124,14 @@ p {
 }
 
 .platform-icon {
-    width: 32px;
-    height: 32px;
+    width: 24px;
+    height: 24px;
 }
 
 .user-info {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 0.5rem;
     color: rgba(255, 255, 255, 0.7);
 }
 
