@@ -2,11 +2,6 @@
 import { LoadPlaylistCard } from '../components/LoadPlaylistCard';
 // import '../components/LoadPlaylist.css';
 import Layout from '../layouts/Layout.astro';
-import Navigation from '../components/Navigation.astro';
-import PlaylistDisplay from '../components/PlaylistDisplay.astro';
-import { PlaylistState } from '../state/playlistState';
-import type { Playlist } from '../models/Playlist';
-import type { SpotifyPlaylist } from '../models/SpotifyPlaylist';
 
 interface Props {
   currentStep?: number;
@@ -28,7 +23,6 @@ const { currentStep = 2, totalSteps = 4 } = Astro.props;
   </header>
 
   <LoadPlaylistCard client:only />
-  <PlaylistDisplay client:load playlist={PlaylistState.getSourcePlaylist() as Playlist | SpotifyPlaylist} />
 </Layout>
 
 <style>
@@ -55,5 +49,9 @@ h1 {
     margin-bottom: 1rem;
 }
 
-/* Rest of your styles... */
+span {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: white;
+}
 </style>

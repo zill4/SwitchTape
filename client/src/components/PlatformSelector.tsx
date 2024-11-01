@@ -49,10 +49,10 @@ export function PlatformSelector({ sourcePlatform = 'spotify' }) {
     { id: 'spotify', name: 'Spotify', icon: 'fab fa-spotify', isSource: sourcePlatform === 'spotify' },
     { id: 'apple', name: 'Apple Music', icon: 'fab fa-apple', isSource: sourcePlatform === 'apple' },
     { id: 'youtube', name: 'YouTube', icon: 'fab fa-youtube', isSource: sourcePlatform === 'youtube' },
-    { id: 'deezer', name: 'Deezer', icon: 'fas fa-music', isSource: sourcePlatform === 'deezer' },
-    { id: 'tidal', name: 'Tidal', icon: 'fas fa-wave-square', isSource: sourcePlatform === 'tidal' },
-    { id: 'amazon', name: 'Amazon Music', icon: 'fab fa-amazon', isSource: sourcePlatform === 'amazon' },
-    { id: 'soundcloud', name: 'SoundCloud', icon: 'fab fa-soundcloud', isSource: sourcePlatform === 'soundcloud' },
+    // { id: 'deezer', name: 'Deezer', icon: 'fas fa-music', isSource: sourcePlatform === 'deezer' },
+    // { id: 'tidal', name: 'Tidal', icon: 'fas fa-wave-square', isSource: sourcePlatform === 'tidal' },
+    // { id: 'amazon', name: 'Amazon Music', icon: 'fab fa-amazon', isSource: sourcePlatform === 'amazon' },
+    // { id: 'soundcloud', name: 'SoundCloud', icon: 'fab fa-soundcloud', isSource: sourcePlatform === 'soundcloud' },
   ];
 
   const handlePlatformSelect = async (platformId: string) => {
@@ -109,15 +109,15 @@ export function PlatformSelector({ sourcePlatform = 'spotify' }) {
   };
 
   return (
-    <div>
-      <div class="search-container">
+    <div class="platform-selector-wrapper">
+      {/* <div class="search-container">
         <i class="fas fa-search search-icon" />
         <input 
           type="text" 
           placeholder="Search a platform" 
           class="search-input"
         />
-      </div>
+      </div> */}
 
       <div class="platforms-grid">
         {platforms.map(platform => (

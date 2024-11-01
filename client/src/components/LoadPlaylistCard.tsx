@@ -12,6 +12,7 @@ export function LoadPlaylistCard() {
   const [isLoading, setIsLoading] = useState(false);
   const [playlist, setPlaylist] = useState<Playlist | SpotifyPlaylist | null>(null);
   const [playlistImage, setPlaylistImage] = useState<string>('');
+  const [showPlaylistView, setShowPlaylistView] = useState(false);
   
   const urlInputRef = useRef<HTMLInputElement>(null);
   const playlistCardRef = useRef<HTMLDivElement>(null);
@@ -41,10 +42,7 @@ export function LoadPlaylistCard() {
       PlaylistState.setSourcePlaylist(loadedPlaylist);
       setPlaylist(loadedPlaylist);
       setPlaylistImage(loadedPlaylist.images ? loadedPlaylist.images[0].url : '');
-      // Show playlist card
-      if (playlistCardRef.current) {
-        playlistCardRef.current.classList.remove('hidden');
-      }
+      setShowPlaylistView(true); // Show playlist view after successful load
     } catch (error) {
       setError('Failed to load playlist');
     } finally {
@@ -72,62 +70,64 @@ export function LoadPlaylistCard() {
 
   return (
     <>
-      <div class="card" id="url-input-card">
-        <h2>Load playlist from URL</h2>
-        <p>Copy playlist URL and paste here:</p>
+      {!showPlaylistView ? (
+        <div class="card" id="url-input-card">
+          <h2>Load playlist from URL</h2>
+          <p>Copy playlist URL and paste here:</p>
 
-        <input
-          type="url"
-          ref={urlInputRef}
-          placeholder="Paste playlist URL here"
-          class="url-input"
-        />
+          <input
+            type="url"
+            ref={urlInputRef}
+            placeholder="Paste playlist URL here"
+            class="url-input"
+          />
 
-        <button 
-          class="load-button" 
-          onClick={handleLoadPlaylist}
-          disabled={isLoading}
-        >
-          {isLoading ? 'Loading...' : 'Load playlist'}
-        </button>
+          <button 
+            class="load-button" 
+            onClick={handleLoadPlaylist}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Loading...' : 'Load playlist'}
+          </button>
 
-        {error && (
-          <div class="error-message">{error}</div>
-        )}
-      </div>
-
-      <div class="card hidden" ref={playlistCardRef} id="playlist-card">
-        <h2>From Your Spotify Account</h2>
-        
-        <div class="account-row">
-          <div class="account-info">
-            <img src="/spotify-icon.svg" alt="Spotify" class="platform-icon" />
-            <span>My Spotify Music Library</span>
-          </div>
-          <div class="user-info">
-            <span class="username">Justin Crisp</span>
-            <i class="fas fa-arrow-right" />
-          </div>
-        </div>
-
-        <div class="playlist-list">
-          {playlist && (
-            <div class="playlist-info">
-              <img 
-                src={playlistImage || '/default-playlist.png'} 
-                alt={playlist.name} 
-                class="playlist-cover" 
-              />
-              <h3>{playlist.name}</h3>
-              <p>{playlist.tracks.length} tracks</p>
-            </div>
+          {error && (
+            <div class="error-message">{error}</div>
           )}
         </div>
+      ) : (
+        <div class="card" id="playlist-card">
+          <h2>From Your Spotify Account</h2>
+          
+          <div class="account-row">
+            <div class="account-info">
+              <img src="/spotify-icon.svg" alt="Spotify" class="platform-icon" />
+              <span>My Spotify Music Library</span>
+            </div>
+            <div class="user-info">
+              <span class="username">Justin Crisp</span>
+              <i class="fas fa-arrow-right" />
+            </div>
+          </div>
 
-        <a href="/select-destination" class="choose-destination-button">
-          Choose Destination
-        </a>
-      </div>
+          <div class="playlist-list">
+            {playlist && (
+              <div class="playlist-info">
+                <img 
+                  src={playlistImage || '/default-playlist.png'} 
+                  alt={playlist.name} 
+                  class="playlist-cover" 
+                />
+                <h3>{playlist.name}</h3>
+                <p>{playlist.tracks.length} tracks</p>
+              </div>
+            )}
+          </div>
+
+          <a href="/select-destination" class="choose-destination-button">
+            Choose Destination
+          </a>
+        </div>
+      )}
     </>
   );
 }
