@@ -1,19 +1,24 @@
+import { Playlist } from "../models/Playlist";
 import type { SpotifyPlaylist } from "../models/SpotifyPlaylist";
-
 export interface PlaylistStateManager {
-    playlist: SpotifyPlaylist | null;
+    sourcePlaylist: Playlist | null | SpotifyPlaylist;
     selectedDestination: string | null;
 }
 
 class PlaylistStateManagerClass {
-    private state: PlaylistStateManager = {
-        playlist: null,
-        selectedDestination: null
+    private state = {
+        sourcePlaylist: null as Playlist | null | SpotifyPlaylist,
+        selectedDestination: null as string | null,
     };
 
-    setPlaylist(playlist: SpotifyPlaylist) {
-        this.state.playlist = playlist;
+    setSourcePlaylist(playlist: Playlist | SpotifyPlaylist) {
+        this.state.sourcePlaylist = playlist;
         this.saveToStorage();
+    }
+
+    getSourcePlaylist(): Playlist | null | SpotifyPlaylist {
+        this.loadFromStorage();
+        return this.state.sourcePlaylist;
     }
 
     setDestination(platform: string) {
@@ -28,7 +33,7 @@ class PlaylistStateManagerClass {
 
     clearState() {
         this.state = {
-            playlist: null,
+            sourcePlaylist: null,
             selectedDestination: null
         };
         localStorage.removeItem('playlistState');

@@ -1,5 +1,7 @@
 import { defineConfig } from 'astro/config';
 
+import preact from '@astrojs/preact';
+
 export default defineConfig({
   vite: {
     define: {
@@ -13,4 +15,6 @@ export default defineConfig({
       'process.env.PUBLIC_FIREBASE_MEASUREMENT_ID': JSON.stringify(process.env.PUBLIC_FIREBASE_MEASUREMENT_ID),
     },
   },
+
+  integrations: [preact()],
 });

@@ -1,10 +1,26 @@
 ---
+import { PlatformSelector } from '../components/PlatformSelector';
+import '../components/SelectDestination.css';
 import Layout from '../layouts/Layout.astro';
-import SelectDestinationComponent from '../components/SelectDestination.astro';
-import Navigation from '../components/Navigation.astro';
+
+interface Props {
+  currentStep?: number;
+  totalSteps?: number;
+}
+
+const { currentStep = 3, totalSteps = 4 } = Astro.props;
 ---
 
-<Layout title="Select Destination - PlaylistS">
-<Navigation />
-  <SelectDestinationComponent currentStep={3} totalSteps={4} />
-</Layout>
+<Layout title="Select Destination">
+  <header>
+    <h1>Select Destination</h1>
+    <div class="step-indicator">
+      <a href="/load-playlist" class="back-button">
+        <i class="fas fa-chevron-left"></i>
+      </a>
+      <span>STEP {currentStep}/{totalSteps}</span>
+    </div>
+  </header>
+
+  <PlatformSelector client:only />
+</div>

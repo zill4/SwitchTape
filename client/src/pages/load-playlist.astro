@@ -1,10 +1,59 @@
 ---
+import { LoadPlaylistCard } from '../components/LoadPlaylistCard';
+// import '../components/LoadPlaylist.css';
 import Layout from '../layouts/Layout.astro';
-import LoadPlaylistComponent from '../components/LoadPlaylist.astro';
 import Navigation from '../components/Navigation.astro';
+import PlaylistDisplay from '../components/PlaylistDisplay.astro';
+import { PlaylistState } from '../state/playlistState';
+import type { Playlist } from '../models/Playlist';
+import type { SpotifyPlaylist } from '../models/SpotifyPlaylist';
+
+interface Props {
+  currentStep?: number;
+  totalSteps?: number;
+}
+
+const { currentStep = 2, totalSteps = 4 } = Astro.props;
 ---
 
-<Layout title="Load Playlist - PlaylistS">
-<Navigation />
-  <LoadPlaylistComponent currentStep={2} totalSteps={4} />
+<Layout title="Load playlist">
+  <header>
+    <h1>Select playlists to move</h1>
+    <div class="step-indicator">
+      <button class="back-button" aria-label="Go back">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <span>STEP {currentStep}/{totalSteps}</span>
+    </div>
+  </header>
+
+  <LoadPlaylistCard client:only />
+  <PlaylistDisplay client:load playlist={PlaylistState.getSourcePlaylist() as Playlist | SpotifyPlaylist} />
 </Layout>
+
+<style>
+.container {
+    min-height: 100vh;
+    padding: 2rem;
+    background: #1a1b26;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+header {
+    width: 100%;
+    max-width: 800px;
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+h1 {
+    font-size: 3rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+}
+
+/* Rest of your styles... */
+</style>

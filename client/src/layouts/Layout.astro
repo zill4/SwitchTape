@@ -1,4 +1,6 @@
 ---
+import Navigation from '../components/Navigation.astro';
+
 interface Props {
 	title: string;
 }
@@ -17,6 +19,7 @@ const { title } = Astro.props;
 		<script src="https://js-cdn.music.apple.com/musickit/v3/musickit.js"></script>
 		<script src="https://kit.fontawesome.com/6de2ac1451.js" crossorigin="anonymous"></script>
 	</head>
+	<Navigation />
 	<body>
 		<slot />
 	</body>

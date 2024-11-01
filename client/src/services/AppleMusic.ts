@@ -1,11 +1,12 @@
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import type { Track } from '../models/music';
-import { AppleMusicPlaylist } from '../models/AppleMusicPlaylist';
+import type { GenericTrack } from '../models/Playlist';
+import { app } from '../../firebase';
 
 export class AppleMusicService {
     private static instance: AppleMusicService;
     private musicKit: any;
     private isInitialized: boolean = false;
+    private static functions = getFunctions(app);
 
     private constructor() {}
 
@@ -21,8 +22,7 @@ export class AppleMusicService {
 
         try {
             // Get token from Firebase function
-            const functions = getFunctions();
-            const getMusicKitToken = httpsCallable(functions, 'getMusicKitToken');
+            const getMusicKitToken = httpsCallable(AppleMusicService.functions, 'getMusicKitToken');
             const result = await getMusicKitToken();
             const { token } = result.data as { token: string };
 
@@ -85,7 +85,7 @@ export class AppleMusicService {
         }
     }
 
-    async searchTrack(track: Track): Promise<string | null> {
+    async searchTrack(track: GenericTrack): Promise<string | null> {
         try {
             const query = `${track.name} ${track.artists[0].name}`;
             const results = await this.musicKit.api.search(query, {
@@ -103,13 +103,13 @@ export class AppleMusicService {
         }
     }
 
-    async addTracksToPlaylist(playlistId: string, tracks: Track[]): Promise<void> {
+    async addTracksToPlaylist(playlistId: string, tracks: GenericTrack[]): Promise<void> {
         if (!this.musicKit.isAuthorized) {
             await this.authorize();
         }
 
         const foundTracks: string[] = [];
-        const notFoundTracks: Track[] = [];
+        const notFoundTracks: GenericTrack[] = [];
 
         for (const track of tracks) {
             const trackId = await this.searchTrack(track);

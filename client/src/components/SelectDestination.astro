@@ -1,4 +1,4 @@
----
+<!-- ---
 interface Props {
     currentStep?: number;
     totalSteps?: number;
@@ -54,40 +54,132 @@ const platforms = [
 
 <script>
 import { PlaylistState } from '../state/playlistState';
+import { AppleMusicService } from '../services/AppleMusic';
+import type { GenericTrack } from '../models/Playlist';
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const state = PlaylistState.getState();
-    if (!state.playlist) {
+    if (!state.sourcePlaylist) {
         window.location.href = '/load-playlist';
         return;
     }
 
     const platformsGrid = document.getElementById('platforms-grid');
     const searchInput = document.getElementById('platform-search') as HTMLInputElement;
-    const nextButton = document.getElementById('next-button');
+    const nextButton = document.createElement('button');
+    nextButton.className = 'next-button hidden';
+    nextButton.id = 'next-button';
+    nextButton.textContent = 'Convert Playlist';
+    document.querySelector('.container')?.appendChild(nextButton);
 
-    platformsGrid?.addEventListener('click', (e) => {
+    platformsGrid?.addEventListener('click', async (e) => {
         const card = (e.target as HTMLElement).closest('.platform-card');
-        if (card) {
-            document.querySelector('.platform-card.selected')?.classList.remove('selected');
-            card.classList.add('selected');
-            nextButton?.classList.remove('hidden');
-            PlaylistState.setDestination((card as HTMLElement).dataset.platformId || '');
+        if (card && !card.classList.contains('source')) {
+            const platformId = ((card as HTMLElement).dataset.platformId as string) || '';
+            
+            if (platformId === 'apple') {
+                try {
+                    const appleMusic = AppleMusicService.getInstance();
+                    await appleMusic.authorize();
+                    
+                    document.querySelector('.platform-card.selected')?.classList.remove('selected');
+                    card.classList.add('selected');
+                    nextButton.classList.remove('hidden');
+                    PlaylistState.setDestination(platformId);
+                } catch (error) {
+                    showError('Failed to authorize Apple Music');
+                }
+            }
         }
     });
 
-    searchInput?.addEventListener('input', (e) => {
-        const search = (e.target as HTMLInputElement).value.toLowerCase();
-        document.querySelectorAll('.platform-card').forEach(card => {
-            const text = card.textContent?.toLowerCase() || '';
-            (card as HTMLElement).style.display = text.includes(search) ? 'flex' : 'none';
-        });
-    });
+    nextButton.addEventListener('click', async () => {
+        const playlist = PlaylistState.getSourcePlaylist();
+        if (!playlist) return;
 
-    nextButton?.addEventListener('click', () => {
-        window.location.href = '/configure-transfer';
+        try {
+            nextButton.disabled = true;
+            showConversionProgress();
+
+            const appleMusic = AppleMusicService.getInstance();
+            const playlistId = await appleMusic.createPlaylist(playlist.name, playlist.description);
+            
+            const progressContainer = document.getElementById('conversion-progress');
+            const progressList = document.getElementById('progress-list');
+            const successCount = document.getElementById('success-count');
+            const totalCount = document.getElementById('total-count');
+            
+            if (totalCount) totalCount.textContent = playlist.tracks.length.toString();
+            let converted = 0;
+
+            // Track conversion progress
+            for (const track of playlist.tracks) {
+                const trackId = await appleMusic.searchTrack(track.track);
+                const listItem = document.createElement('div');
+                listItem.className = 'progress-item';
+                
+                if (trackId) {
+                    converted++;
+                    listItem.innerHTML = `
+                        <i class="fas fa-check success"></i>
+                        <span>${track.track.name} - ${track.track.artists[0].name}</span>
+                    `;
+                } else {
+                    listItem.innerHTML = `
+                        <i class="fas fa-times failure"></i>
+                        <span>${track.track.name} - ${track.track.artists[0].name}</span>
+                    `;
+                }
+                
+                progressList?.appendChild(listItem);
+                if (successCount) successCount.textContent = converted.toString();
+            }
+
+            await appleMusic.addTracksToPlaylist(playlistId, playlist.tracks.map((t: { track: GenericTrack; }) => t.track as GenericTrack));
+            showConversionComplete(converted, playlist.tracks.length);
+        } catch (error) {
+            showError('Failed to convert playlist');
+        } finally {
+            nextButton.disabled = false;
+        }
     });
 });
+
+function showConversionProgress() {
+    const progressHtml = `
+        <div id="conversion-progress" class="conversion-progress">
+            <h3>Converting Playlist</h3>
+            <div class="progress-header">
+                <span>Successfully converted: <span id="success-count">0</span>/<span id="total-count">0</span></span>
+            </div>
+            <div id="progress-list" class="progress-list"></div>
+        </div>
+    `;
+    
+    document.getElementById('platforms-grid')?.insertAdjacentHTML('afterend', progressHtml);
+}
+
+function showConversionComplete(converted: number, total: number) {
+    const completeHtml = `
+        <div class="conversion-complete">
+            <h3>Conversion Complete!</h3>
+            <p>Successfully converted ${converted} out of ${total} tracks</p>
+            <a href="/your-apple-music-link" class="view-playlist-button">
+                View in Apple Music
+            </a>
+        </div>
+    `;
+    
+    document.getElementById('conversion-progress')?.insertAdjacentHTML('beforeend', completeHtml);
+}
+
+function showError(message: string) {
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'error';
+    errorDiv.textContent = message;
+    document.querySelector('.container')?.appendChild(errorDiv);
+    setTimeout(() => errorDiv.remove(), 3000);
+}
 </script>
 
 <style>
@@ -214,4 +306,83 @@ h1 {
 .hidden {
     display: none;
 }
-</style>
+
+.conversion-progress {
+    width: 100%;
+    max-width: 800px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 1.5rem;
+    padding: 2rem;
+    margin-top: 2rem;
+}
+
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.progress-list {
+    max-height: 300px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.progress-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 0.5rem;
+}
+
+.success {
+    color: #4CAF50;
+}
+
+.failure {
+    color: #f44336;
+}
+
+.conversion-complete {
+    margin-top: 2rem;
+    text-align: center;
+}
+
+.view-playlist-button {
+    display: inline-block;
+    background: #7C5DFA;
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 2rem;
+    text-decoration: none;
+    margin-top: 1rem;
+    transition: all 0.2s;
+}
+
+.view-playlist-button:hover {
+    background: #6B4FF8;
+    transform: translateY(-2px);
+}
+
+.error {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #f44336;
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 0.5rem;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(1rem); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+</style> -->
