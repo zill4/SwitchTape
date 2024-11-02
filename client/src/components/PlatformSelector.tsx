@@ -3,7 +3,7 @@ import { useState, useEffect } from 'preact/hooks';
 import { PlaylistState } from '../state/playlistState';
 import { AppleMusicService } from '../services/AppleMusic';
 import type { GenericTrack } from '../models/Playlist';
-import './SelectDestination.css';
+import '../styles/SelectDestination.css';
 import type { Playlist } from '../models/Playlist';
 import type { SpotifyPlaylist } from '../models/SpotifyPlaylist';
 
@@ -26,6 +26,7 @@ export function PlatformSelector({ sourcePlatform = 'spotify' }) {
   const [isConverting, setIsConverting] = useState(false);
   const [progress, setProgress] = useState<ConversionProgress | null>(null);
   const [sourcePlaylist, setSourcePlaylist] = useState<Playlist | SpotifyPlaylist | null>(null);
+  const [loadingPlatform, setLoadingPlatform] = useState<string | null>(null);
 
   useEffect(() => {
     // Subscribe to state changes
@@ -56,6 +57,8 @@ export function PlatformSelector({ sourcePlatform = 'spotify' }) {
   ];
 
   const handlePlatformSelect = async (platformId: string) => {
+    setLoadingPlatform(platformId);
+    
     if (platformId === 'apple') {
       try {
         const appleMusic = AppleMusicService.getInstance();
@@ -66,6 +69,9 @@ export function PlatformSelector({ sourcePlatform = 'spotify' }) {
         setError('Failed to authorize Apple Music');
       }
     }
+    // Add other platform handlers here
+    
+    setLoadingPlatform(null);
   };
 
   const handleConversion = async () => {
@@ -75,36 +81,14 @@ export function PlatformSelector({ sourcePlatform = 'spotify' }) {
     }
 
     setIsConverting(true);
-    setProgress({ converted: 0, total: sourcePlaylist.tracks.length, tracks: [] });
-
+    
     try {
-      const appleMusic = AppleMusicService.getInstance();
-      const playlistId = await appleMusic.createPlaylist(
-        sourcePlaylist.name, 
-        'description' in sourcePlaylist ? sourcePlaylist.description : ''
-      );
-
-      for (const track of sourcePlaylist.tracks) {
-        const trackId = await appleMusic.searchTrack(track);
-        setProgress(prev => {
-          if (!prev) return null;
-          return {
-            ...prev,
-            converted: trackId ? prev.converted + 1 : prev.converted,
-            tracks: [...prev.tracks, {
-              name: track.name,
-              artist: track.artists[0].name,
-              success: !!trackId
-            }]
-          };
-        });
-      }
-
-      await appleMusic.addTracksToPlaylist(playlistId, sourcePlaylist.tracks);
+      // Your conversion logic here
+      
+      // After successful conversion, redirect to progress page
+      window.location.href = '/conversion-progress';
     } catch (error) {
       setError('Failed to convert playlist');
-    } finally {
-      setIsConverting(false);
     }
   };
 
@@ -122,13 +106,22 @@ export function PlatformSelector({ sourcePlatform = 'spotify' }) {
       <div class="platforms-grid">
         {platforms.map(platform => (
           <button 
-            class={`platform-card ${platform.isSource ? 'source' : ''} ${selectedPlatform === platform.id ? 'selected' : ''}`}
+            class={`platform-card ${platform.isSource ? 'source' : ''} 
+              ${selectedPlatform === platform.id ? 'selected' : ''}
+              ${loadingPlatform === platform.id ? 'loading' : ''}`}
             onClick={() => handlePlatformSelect(platform.id)}
-            disabled={platform.isSource}
+            disabled={platform.isSource || loadingPlatform !== null}
           >
             {platform.isSource && <span class="source-badge">Source</span>}
             <i class={platform.icon} />
-            <span class="platform-name">{platform.name}</span>
+            <span class="platform-name">
+              {loadingPlatform === platform.id ? 'Loading...' : platform.name}
+            </span>
+            {loadingPlatform === platform.id && (
+              <div class="loading-overlay">
+                <div class="loading-bar"></div>
+              </div>
+            )}
           </button>
         ))}
       </div>

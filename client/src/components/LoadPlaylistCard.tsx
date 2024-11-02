@@ -5,7 +5,7 @@ import { SpotifyService } from '../services/spotify';
 import { PlaylistState } from '../state/playlistState';
 import type { Playlist } from '../models/Playlist';
 import type { SpotifyPlaylist } from '../models/SpotifyPlaylist';
-import './LoadPlaylist.css';
+import '../styles/LoadPlaylist.css';
 
 export function LoadPlaylistCard() {
   const [error, setError] = useState<string>('');
@@ -95,7 +95,8 @@ export function LoadPlaylistCard() {
           <h2>From Your Spotify Account</h2>
           <div class="account-row">
             <div class="account-info">
-              <img src="/spotify-icon.svg" alt="Spotify" class="platform-icon" />
+              <i class="fab fa-spotify" />
+              {/* <img src="/spotify-icon.svg" alt="Spotify" class="platform-icon" /> */}
               <span>My Spotify Music Library</span>
             </div>
             <div class="user-info">

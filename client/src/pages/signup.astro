@@ -1,9 +1,10 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import AuthForm from '../components/AuthForm.astro';
-import Navigation from '../components/Navigation.astro';
+import { SignupForm } from '../components/SignupForm';
 ---
 
-<Layout title="Sign Up - PlaylistS">
-	<AuthForm type="signup" />
+<Layout title="Sign Up">
+	<div class="auth-container">
+		<SignupForm client:load />
+	</div>
 </Layout>

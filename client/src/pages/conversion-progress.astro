@@ -1,0 +1,21 @@
+---
+import { ConversionProgressCard } from '../components/ConversionProgressCard';
+import Layout from '../layouts/Layout.astro';
+
+interface Props {
+  currentStep?: number;
+  totalSteps?: number;
+}
+
+const { currentStep = 4, totalSteps = 4 } = Astro.props;
+---
+
+<Layout title="Converting Playlist">
+  <header>
+    <div class="step-indicator">
+      <span>STEP {currentStep}/{totalSteps}</span>
+    </div>
+  </header>
+
+  <ConversionProgressCard client:only />
+</Layout>
