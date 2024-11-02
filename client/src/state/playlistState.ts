@@ -60,6 +60,14 @@ class PlaylistStateManager {
     this.notify();
     localStorage.removeItem('playlistState');
   }
+
+   setDestinationPlaylistId(id: string) {
+    localStorage.setItem('destination_playlist_id', id);
+  }
+
+   getDestinationPlaylistId(): string | null {
+    return localStorage.getItem('destination_playlist_id');
+  }
 }
 
 // Create a singleton instance

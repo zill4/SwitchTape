@@ -31,9 +31,9 @@ export class ResponseHandler {
                     if (attempts === config.maxAttempts - 1) {
                         throw new Error('Max authentication retry attempts reached');
                     }
-                    // Clear tokens before retry
-                    localStorage.removeItem('spotify_access_token');
-                    localStorage.removeItem('spotify_token_expiry');
+                    // Make token clearing provider-agnostic
+                    const tokenKeys = response.headers.get('X-Provider-Tokens')?.split(',') || [];
+                    tokenKeys.forEach(key => localStorage.removeItem(key));
                 } else if (response.status === 429) {
                     // Rate limit hit - get retry delay from headers
                     const retryAfter = response.headers.get('Retry-After');

@@ -55,3 +55,10 @@ h1 {
 .save-button:hover {
     background: #cc0000;
 }
+
+.searching-track {
+    font-size: 0.9em;
+    color: #666;
+    margin-top: 8px;
+    font-style: italic;
+}

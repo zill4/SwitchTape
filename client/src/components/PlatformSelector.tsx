@@ -49,7 +49,7 @@ export function PlatformSelector({ sourcePlatform = 'spotify' }) {
   const platforms: Platform[] = [
     { id: 'spotify', name: 'Spotify', icon: 'fab fa-spotify', isSource: sourcePlatform === 'spotify' },
     { id: 'apple', name: 'Apple Music', icon: 'fab fa-apple', isSource: sourcePlatform === 'apple' },
-    { id: 'youtube', name: 'YouTube', icon: 'fab fa-youtube', isSource: sourcePlatform === 'youtube' },
+    // { id: 'youtube', name: 'YouTube', icon: 'fab fa-youtube', isSource: sourcePlatform === 'youtube' },
     // { id: 'deezer', name: 'Deezer', icon: 'fas fa-music', isSource: sourcePlatform === 'deezer' },
     // { id: 'tidal', name: 'Tidal', icon: 'fas fa-wave-square', isSource: sourcePlatform === 'tidal' },
     // { id: 'amazon', name: 'Amazon Music', icon: 'fab fa-amazon', isSource: sourcePlatform === 'amazon' },
@@ -76,19 +76,28 @@ export function PlatformSelector({ sourcePlatform = 'spotify' }) {
 
   const handleConversion = async () => {
     if (!sourcePlaylist) {
-      setError('No playlist selected');
-      return;
+        setError('No playlist selected');
+        return;
     }
 
     setIsConverting(true);
     
     try {
-      // Your conversion logic here
-      
-      // After successful conversion, redirect to progress page
-      window.location.href = '/conversion-progress';
+        const appleMusic = AppleMusicService.getInstance();
+        // Create the playlist first
+        const newPlaylistId = await appleMusic.createPlaylist(
+            sourcePlaylist.name,
+            sourcePlaylist.description
+        );
+        
+        // Store the destination playlist ID in state
+        PlaylistState.setDestinationPlaylistId(newPlaylistId);
+        
+        // Now navigate to progress page
+        window.location.href = '/conversion-progress';
     } catch (error) {
-      setError('Failed to convert playlist');
+        setError('Failed to create playlist');
+        setIsConverting(false);
     }
   };
 

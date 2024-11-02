@@ -1,6 +1,7 @@
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import type { GenericTrack } from '../models/Playlist';
+import type { GenericTrack, Playlist } from '../models/Playlist';
 import { app } from '../../firebase';
+import { ResponseHandler } from './responseHandler';
 
 export class AppleMusicService {
     private static instance: AppleMusicService;
@@ -18,14 +19,148 @@ export class AppleMusicService {
         return AppleMusicService.instance;
     }
 
+    private async getDeveloperToken(): Promise<string> {
+        // Check localStorage first
+        const cachedToken = localStorage.getItem('apple_developer_token');
+        const tokenExpiry = localStorage.getItem('apple_token_expiry');
+        
+        if (cachedToken && tokenExpiry && Date.now() < parseInt(tokenExpiry)) {
+            return cachedToken;
+        }
+
+        // Get new token if none cached or expired
+        try {
+            const getMusicKitToken = httpsCallable(AppleMusicService.functions, 'getMusicKitToken');
+            const result = await getMusicKitToken();
+            const { token, expiresIn = 86400 } = result.data as { token: string; expiresIn: number };
+            
+            // Store token with expiry (default 24 hours if not specified)
+            localStorage.setItem('apple_developer_token', token);
+            localStorage.setItem('apple_token_expiry', (Date.now() + expiresIn * 1000).toString());
+            
+            return token;
+        } catch (error) {
+            console.error('Failed to get developer token:', error);
+            throw new Error('Failed to get Apple Music authorization token');
+        }
+    }
+
+    async getPlaylist(url: string): Promise<Playlist> {
+        if (!this.isInitialized) {
+            await this.initialize();
+        }
+
+        const playlistId = this.extractPlaylistId(url);
+        if (!playlistId) {
+            throw new Error('Invalid Apple Music playlist URL');
+        }
+
+        return ResponseHandler.retryWithNewToken(
+            async (token: string) => {
+                const response = await fetch(
+                    `${this.baseUrl}/catalog/us/playlists/${playlistId}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Music-User-Token': this.musicKit.musicUserToken || '',
+                        }
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch playlist: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                return this.transformPlaylist(data.data[0]);
+            },
+            async () => await this.getDeveloperToken()
+        );
+    }
+
+    private async makeRequest(endpoint: string, method: string = 'GET', body?: any): Promise<any> {
+        if (!this.musicKit?.isAuthorized) {
+            await this.authorize();
+        }
+
+        return ResponseHandler.retryWithNewToken(
+            async (token: string) => {
+                const response = await fetch(`${this.baseUrl}${endpoint}`, {
+                    method,
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Music-User-Token': this.musicKit.musicUserToken,
+                        'Content-Type': 'application/json'
+                    },
+                    body: body ? JSON.stringify(body) : undefined
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Request failed: ${response.statusText}`);
+                }
+
+                // Return null for 204 No Content responses
+                if (response.status === 204) {
+                    return null;
+                }
+
+                return await response.json();
+            },
+            async () => await this.getDeveloperToken()
+        );
+    }
+
+    private transformPlaylist(applePlaylist: any): Playlist {
+        const tracks = applePlaylist.relationships.tracks.data.map((track: any) => ({
+            name: track.attributes.name,
+            artists: [{
+                id: track.attributes.artistId,
+                name: track.attributes.artistName
+            }],
+            album: {
+                id: track.attributes.albumId,
+                name: track.attributes.albumName,
+                images: track.attributes.artwork ? 
+                    [track.attributes.artwork.url.replace('{w}x{h}', '300x300')] : 
+                    []
+            },
+            duration_ms: track.attributes.durationInMillis,
+            isrc: track.attributes.isrc
+        }));
+
+        return {
+            name: applePlaylist.attributes.name,
+            description: applePlaylist.attributes.description?.standard || '',
+            tracks,
+            totalTracks: tracks.length,
+            getFormattedDuration: function() {
+                const totalMs = tracks.reduce((sum: any, track: { duration_ms: any; }) => sum + track.duration_ms, 0);
+                const minutes = Math.floor(totalMs / 60000);
+                return `${minutes} min`;
+            },
+            getArtistNames: function(track: GenericTrack): string {
+                return [...new Set(tracks.flatMap((track: { artists: any[]; }) => track.artists.map((artist: { name: any; }) => artist.name)))].join(', ');
+            }
+        };
+    }
+
+    private extractPlaylistId(url: string): string | null {
+        const match = url.match(/playlist\/.*\/(pl\.[a-zA-Z0-9]+)/);
+        return match ? match[1] : null;
+      }
+    
+    async getToken(): Promise<string> {
+        const getMusicKitToken = httpsCallable(AppleMusicService.functions, 'getMusicKitToken');
+        const result = await getMusicKitToken();
+        const { token } = result.data as { token: string };
+        return token;
+    }
+    
     async initialize(): Promise<void> {
         if (this.isInitialized) return;
 
         try {
             // Get token from Firebase function
-            const getMusicKitToken = httpsCallable(AppleMusicService.functions, 'getMusicKitToken');
-            const result = await getMusicKitToken();
-            const { token } = result.data as { token: string };
+            const token = await this.getToken();
 
             if (!token) {
                 throw new Error('Failed to get MusicKit token');
@@ -66,35 +201,6 @@ export class AppleMusicService {
             console.error('Failed to authorize with Apple Music:', error);
             throw new Error('Failed to authorize with Apple Music');
         }
-    }
-
-    private async makeRequest(endpoint: string, method: string = 'GET', body?: any) {
-        if (!this.musicKit.isAuthorized) {
-            await this.authorize();
-        }
-
-        console.log(`Making ${method} request to ${endpoint}`);
-        console.log('Request body:', body);
-
-        const response = await fetch(`${this.baseUrl}${endpoint}`, {
-            method,
-            headers: {
-                'Authorization': `Bearer ${this.musicKit.developerToken}`,
-                'Music-User-Token': this.musicKit.musicUserToken,
-                'Content-Type': 'application/json'
-            },
-            body: body ? JSON.stringify(body) : undefined
-        });
-
-        const responseText = await response.text();
-        
-        if (!response.ok) {
-            console.error('API Error Response:', responseText);
-            throw new Error(`Apple Music API error: ${response.statusText} - ${responseText}`);
-        }
-
-        // Only parse as JSON if there's content
-        return responseText ? JSON.parse(responseText) : null;
     }
 
     async createPlaylist(name: string, description: string = ''): Promise<string> {
@@ -144,11 +250,24 @@ export class AppleMusicService {
         }
     }
 
-    async addTracksToPlaylist(playlistId: string, tracks: GenericTrack[]): Promise<void> {
+    async addTracksToPlaylist(
+        playlistId: string, 
+        tracks: GenericTrack[], 
+        onProgress?: (status: string, progress: number, phase: 'searching' | 'adding' | 'complete', currentTrack?: GenericTrack) => void
+    ): Promise<void> {
         const foundTracks: string[] = [];
         const notFoundTracks: GenericTrack[] = [];
 
-        for (const track of tracks) {
+        // First, find all matching tracks
+        for (let i = 0; i < tracks.length; i++) {
+            const track = tracks[i];
+            onProgress?.(
+                `Searching for "${track.name}" by ${track.artists[0].name}...`, 
+                (i / tracks.length) * 50,
+                'searching',
+                track
+            );
+            
             const trackId = await this.searchTrack(track);
             if (trackId) {
                 foundTracks.push(trackId);
@@ -157,11 +276,16 @@ export class AppleMusicService {
             }
         }
 
-        if (foundTracks.length > 0) {
+        // Add tracks in batches of 20
+        const BATCH_SIZE = 20;
+        for (let i = 0; i < foundTracks.length; i += BATCH_SIZE) {
+            const batch = foundTracks.slice(i, i + BATCH_SIZE);
+            const batchTracks = tracks.slice(i, i + BATCH_SIZE); // Get corresponding original tracks
+            const progress = 50 + ((i / foundTracks.length) * 50);
+            
             try {
-                // The correct data structure for the Apple Music API
                 const data = {
-                    data: foundTracks.map(id => ({
+                    data: batch.map(id => ({
                         id,
                         type: 'songs',
                         relationships: {
@@ -175,24 +299,32 @@ export class AppleMusicService {
                     }))
                 };
 
-                console.log('Request data:', JSON.stringify(data, null, 2)); // Debug log
-
-                const response = await this.makeRequest(
+                await this.makeRequest(
                     `/me/library/playlists/${playlistId}/tracks`, 
                     'POST', 
                     data
                 );
 
-                console.log('Response:', response); // Debug log
-            } catch (error) {
-                console.error('Failed to add tracks to playlist:', error);
-                if (error instanceof Response) {
-                    const errorText = await error.text();
-                    console.error('Error response:', errorText);
+                // Update progress with all tracks in the batch
+                batchTracks.forEach(track => {
+                    onProgress?.(
+                        `Adding tracks ${i + 1}-${Math.min(i + BATCH_SIZE, foundTracks.length)} of ${foundTracks.length}...`, 
+                        progress,
+                        'adding',
+                        track
+                    );
+                });
+
+                if (i + BATCH_SIZE < foundTracks.length) {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
                 }
-                throw new Error('Failed to add tracks to playlist');
+            } catch (error) {
+                console.error(`Failed to add batch ${i / BATCH_SIZE + 1}:`, error);
+                throw error;
             }
         }
+
+        onProgress?.('Playlist conversion complete!', 100, 'complete');
 
         if (notFoundTracks.length > 0) {
             console.warn('Some tracks were not found:', notFoundTracks);

@@ -1,14 +1,14 @@
 ---
+const { currentPage } = Astro.props;
 ---
+
 <nav class="navbar">
   <div class="nav-content">
-    <a href="/" class="logo">
-      <h1>Switchtape</h1>
-    </a>
+    <a href="/" class="logo">SWITCHTAPE</a>
     <div class="nav-links">
-      <a href="/load-playlist">Start</a>
-      <a href="/login">Login</a>
-      <a href="/signup">Sign Up</a>
+      <a href="/load-playlist" class={currentPage === 'start' ? 'active' : ''}>START</a>
+      <a href="/login" class={currentPage === 'login' ? 'active' : ''}>LOGIN</a>
+      <a href="/signup" class={currentPage === 'signup' ? 'active' : ''}>SIGN UP</a>
     </div>
   </div>
 </nav>
@@ -29,21 +29,18 @@
     max-width: 1200px;
     height: 100%;
     margin: 0 auto;
-    padding: 0 1rem;
+    padding: 0 2rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
   }
 
   .logo {
-    text-decoration: none;
-  }
-
-  .logo h1 {
     color: var(--color-red);
     font-size: 1.5rem;
     font-weight: bold;
-    text-transform: uppercase;
+    text-decoration: none;
+    letter-spacing: 0.05em;
   }
 
   .nav-links {
@@ -59,7 +56,8 @@
     font-weight: 500;
   }
 
-  .nav-links a:hover {
+  .nav-links a:hover,
+  .nav-links a.active {
     color: var(--color-red);
   }
 </style>
