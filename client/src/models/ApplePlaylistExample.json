@@ -1,0 +1,218 @@
+{
+    "data": [
+        {
+            "id": "pl.u-6mo4lGWCRmz9k5",
+            "type": "playlists",
+            "href": "/v1/catalog/us/playlists/pl.u-6mo4lGWCRmz9k5",
+            "attributes": {
+                "curatorName": "Justin Crisp",
+                "lastModifiedDate": "2024-10-24T07:50:42Z",
+                "isChart": false,
+                "name": "</3",
+                "playlistType": "user-shared",
+                "artwork": {
+                    "width": 2400,
+                    "height": 2400,
+                    "url": "https://is1-ssl.mzstatic.com/image/thumb/gen/{w}x{h}AM.PDCXS01.jpg?c3=48351D&c4=271806&t=PC8z&signature=f54a6f56cb7bd679cd5f2ab8d845bcced1f35f13aef8c02670161db81c864535&c1=FBF8F3&vkey=1&c2=D7B68C&tc=000000"
+                },
+                "playParams": {
+                    "id": "pl.u-6mo4lGWCRmz9k5",
+                    "kind": "playlist",
+                    "versionHash": "6466d90dc848bc6a105695d90e314f7a4d057f44a1d2f69356c4f518e4ff3244"
+                },
+                "url": "https://music.apple.com/us/playlist/3/pl.u-6mo4lGWCRmz9k5"
+            },
+            "relationships": {
+                "tracks": {
+                    "href": "/v1/catalog/us/playlists/pl.u-6mo4lGWCRmz9k5/tracks",
+                    "data": [
+                        {
+                            "id": "1743054747",
+                            "type": "songs",
+                            "href": "/v1/catalog/us/songs/1743054747",
+                            "attributes": {
+                                "albumName": "The Secret of Us",
+                                "genreNames": [
+                                    "Pop",
+                                    "Music"
+                                ],
+                                "trackNumber": 4,
+                                "releaseDate": "2024-06-21",
+                                "durationInMillis": 157139,
+                                "isrc": "USUG12401766",
+                                "artwork": {
+                                    "width": 3000,
+                                    "height": 3000,
+                                    "url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/52/9a/a7/529aa76f-5d60-cd81-9eb0-0eb521de861d/24UMGIM43968.rgb.jpg/{w}x{h}bb.jpg",
+                                    "bgColor": "fcf9f4",
+                                    "textColor1": "0e0a05",
+                                    "textColor2": "16110b",
+                                    "textColor3": "3e3a35",
+                                    "textColor4": "443f39"
+                                },
+                                "composerName": "Gracie Abrams, Aaron Dessner & Audrey Hobert",
+                                "url": "https://music.apple.com/us/album/i-love-you-im-sorry/1743054543?i=1743054747",
+                                "playParams": {
+                                    "id": "1743054747",
+                                    "kind": "song"
+                                },
+                                "discNumber": 1,
+                                "isAppleDigitalMaster": true,
+                                "hasLyrics": true,
+                                "name": "I Love You, I'm Sorry",
+                                "previews": [
+                                    {
+                                        "url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/c8/ef/8c/c8ef8c39-9e98-f2cc-6c6f-5aeb0df0b64f/mzaf_10384034394539215321.plus.aac.p.m4a"
+                                    }
+                                ],
+                                "artistName": "Gracie Abrams",
+                                "contentRating": "explicit"
+                            }
+                        },
+                        {
+                            "id": "153438355",
+                            "type": "songs",
+                            "href": "/v1/catalog/us/songs/153438355",
+                            "attributes": {
+                                "albumName": "Wreck of the Day",
+                                "genreNames": [
+                                    "Pop",
+                                    "Music",
+                                    "Rock",
+                                    "Singer/Songwriter",
+                                    "Adult Alternative",
+                                    "Pop/Rock"
+                                ],
+                                "trackNumber": 1,
+                                "releaseDate": "2004-12-18",
+                                "durationInMillis": 279827,
+                                "isrc": "USSM10412997",
+                                "artwork": {
+                                    "width": 603,
+                                    "height": 600,
+                                    "url": "https://is1-ssl.mzstatic.com/image/thumb/Features124/v4/84/6d/2d/846d2dde-a1dc-3c47-5a5b-bc400d3a12ef/dj.fsbnzvea.jpg/{w}x{h}bb.jpg",
+                                    "bgColor": "130a05",
+                                    "textColor1": "fefdf8",
+                                    "textColor2": "fff2df",
+                                    "textColor3": "cfccc7",
+                                    "textColor4": "cfc3b3"
+                                },
+                                "composerName": "Anna Nalick",
+                                "url": "https://music.apple.com/us/album/breathe-2-am/153438328?i=153438355",
+                                "playParams": {
+                                    "id": "153438355",
+                                    "kind": "song"
+                                },
+                                "discNumber": 1,
+                                "isAppleDigitalMaster": false,
+                                "hasLyrics": true,
+                                "name": "Breathe (2 AM)",
+                                "previews": [
+                                    {
+                                        "url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/fe/de/f3/fedef377-174a-2e39-6111-246805c10af9/mzaf_12999918707262776635.plus.aac.p.m4a"
+                                    }
+                                ],
+                                "artistName": "Anna Nalick"
+                            }
+                        },
+                        {
+                            "id": "1440735263",
+                            "type": "songs",
+                            "href": "/v1/catalog/us/songs/1440735263",
+                            "attributes": {
+                                "albumName": "Stars: The Best of the Cranberries 1992-2002",
+                                "genreNames": [
+                                    "Pop",
+                                    "Music"
+                                ],
+                                "trackNumber": 2,
+                                "releaseDate": "1993-01-01",
+                                "durationInMillis": 274773,
+                                "isrc": "USIR29300085",
+                                "artwork": {
+                                    "width": 1423,
+                                    "height": 1409,
+                                    "url": "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/10/ca/47/10ca4719-e70e-6806-5c52-308806cccd3c/06UMGIM09433.rgb.jpg/{w}x{h}bb.jpg",
+                                    "bgColor": "070c0f",
+                                    "textColor1": "bac9f3",
+                                    "textColor2": "6ea1e2",
+                                    "textColor3": "96a3c5",
+                                    "textColor4": "5983b7"
+                                },
+                                "composerName": "Dolores O'Riordan & Noel Hogan",
+                                "url": "https://music.apple.com/us/album/linger/1440735255?i=1440735263",
+                                "playParams": {
+                                    "id": "1440735263",
+                                    "kind": "song"
+                                },
+                                "discNumber": 1,
+                                "isAppleDigitalMaster": false,
+                                "hasLyrics": true,
+                                "name": "Linger",
+                                "previews": [
+                                    {
+                                        "url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/44/81/b3/4481b3f5-c49d-2d9c-c168-2e2cebb74da6/mzaf_12903030677433055107.plus.aac.p.m4a"
+                                    }
+                                ],
+                                "artistName": "The Cranberries"
+                            }
+                        },
+                        {
+                            "id": "80456409",
+                            "type": "songs",
+                            "href": "/v1/catalog/us/songs/80456409",
+                            "attributes": {
+                                "albumName": "A Fever You Can't Sweat Out",
+                                "genreNames": [
+                                    "Alternative",
+                                    "Music",
+                                    "Rock",
+                                    "Punk"
+                                ],
+                                "trackNumber": 10,
+                                "releaseDate": "2005-09-27",
+                                "durationInMillis": 186635,
+                                "isrc": "US56V0507710",
+                                "artwork": {
+                                    "width": 1428,
+                                    "height": 1417,
+                                    "url": "https://is1-ssl.mzstatic.com/image/thumb/Music/y2005/m09/d13/h21/mzi.jktkppen.jpg/{w}x{h}bb.jpg",
+                                    "bgColor": "3d061d",
+                                    "textColor1": "e4bdaf",
+                                    "textColor2": "b9bdd2",
+                                    "textColor3": "c39892",
+                                    "textColor4": "a099ad"
+                                },
+                                "composerName": "Brendon Urie, Ryan Ross & Spencer Smith",
+                                "url": "https://music.apple.com/us/album/i-write-sins-not-tragedies/80456435?i=80456409",
+                                "playParams": {
+                                    "id": "80456409",
+                                    "kind": "song"
+                                },
+                                "discNumber": 1,
+                                "isAppleDigitalMaster": false,
+                                "hasLyrics": true,
+                                "name": "I Write Sins Not Tragedies",
+                                "previews": [
+                                    {
+                                        "url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/91/c1/13/91c11394-7357-5807-bd99-b3109eaf43bc/mzaf_9003654864131597490.plus.aac.p.m4a"
+                                    }
+                                ],
+                                "artistName": "Panic! At the Disco"
+                            }
+                        }
+                    ]
+                },
+                "curator": {
+                    "href": "/v1/catalog/us/playlists/pl.u-6mo4lGWCRmz9k5/curator",
+                    "data": [
+                        {
+                            "id": "sp.6ce303af-ee37-4390-8930-fbfb4794b752",
+                            "type": "social-profiles"
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}

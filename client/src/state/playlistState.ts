@@ -3,39 +3,26 @@ import type { SpotifyPlaylist } from '../models/SpotifyPlaylist';
 
 interface PlaylistStateType {
   sourcePlaylist: Playlist | SpotifyPlaylist | null;
+  sourcePlatform: 'spotify' | 'apple' | null;
   destinationPlatform: string | null;
 }
 
 class PlaylistStateManager {
   private state: PlaylistStateType = {
     sourcePlaylist: null,
+    sourcePlatform: null,
     destinationPlatform: null
   };
 
-  private listeners: Set<() => void> = new Set();
-
-  constructor() {
-    // Try to load state from localStorage
-    const savedState = localStorage.getItem('playlistState');
-    if (savedState) {
-      this.state = JSON.parse(savedState);
-    }
-  }
-
-  private notify() {
-    // Notify all listeners of state change
-    this.listeners.forEach(listener => listener());
-    // Save to localStorage
-    localStorage.setItem('playlistState', JSON.stringify(this.state));
-  }
+  private listeners = new Set<() => void>();
 
   subscribe(listener: () => void) {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
   }
 
-  getState(): PlaylistStateType {
-    return this.state;
+  private notify() {
+    this.listeners.forEach(listener => listener());
   }
 
   getSourcePlaylist(): Playlist | SpotifyPlaylist | null {
@@ -47,28 +34,22 @@ class PlaylistStateManager {
     this.notify();
   }
 
-  setDestination(platform: string) {
-    this.state.destinationPlatform = platform;
+  getSourcePlatform(): 'spotify' | 'apple' | null {
+    return this.state.sourcePlatform;
+  }
+
+  setSourcePlatform(platform: 'spotify' | 'apple') {
+    this.state.sourcePlatform = platform;
     this.notify();
   }
 
-  clearState() {
-    this.state = {
-      sourcePlaylist: null,
-      destinationPlatform: null
-    };
-    this.notify();
-    localStorage.removeItem('playlistState');
-  }
-
-   setDestinationPlaylistId(id: string) {
+  setDestinationPlaylistId(id: string) {
     localStorage.setItem('destination_playlist_id', id);
   }
 
-   getDestinationPlaylistId(): string | null {
+  getDestinationPlaylistId(): string | null {
     return localStorage.getItem('destination_playlist_id');
   }
 }
 
-// Create a singleton instance
 export const PlaylistState = new PlaylistStateManager();

@@ -2,35 +2,58 @@
 import { h } from 'preact';
 import { useState, useRef, useEffect } from 'preact/hooks';
 import { SpotifyService } from '../services/spotify';
+import { AppleMusicService } from '../services/AppleMusic';
 import { PlaylistState } from '../state/playlistState';
 import type { Playlist } from '../models/Playlist';
 import type { SpotifyPlaylist } from '../models/SpotifyPlaylist';
 import '../styles/LoadPlaylist.css';
+import { AppleMusicPlaylist } from '../models/AppleMusicPlaylist';
+
 
 export function LoadPlaylistCard() {
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
-  const [playlist, setPlaylist] = useState<Playlist | SpotifyPlaylist | null>(null);
+  const [playlist, setPlaylist] = useState<Playlist | SpotifyPlaylist | AppleMusicPlaylist | null>(null);
   const [playlistImage, setPlaylistImage] = useState<string>('');
   const [showPlaylistView, setShowPlaylistView] = useState(false);
   
   const urlInputRef = useRef<HTMLInputElement>(null);
   const playlistCardRef = useRef<HTMLDivElement>(null);
 
-  const extractPlaylistIdFromUrl = (url: string): string | null => {
-    const match = url.match(/playlist\/([a-zA-Z0-9]+)/);
-    return match ? match[1] : null;
+  const determinePlaylistService = (url: string): 'spotify' | 'apple' | null => {
+    if (url.includes('spotify.com')) return 'spotify';
+    if (url.includes('music.apple.com')) return 'apple';
+    return null;
   };
 
-  // TODO: Handle both Spotify and Apple Music playlists
+  const extractPlaylistIdFromUrl = (url: string, service: 'spotify' | 'apple'): string | null => {
+    switch (service) {
+      case 'spotify':
+        const spotifyMatch = url.match(/playlist\/([a-zA-Z0-9]+)/);
+        return spotifyMatch ? spotifyMatch[1] : null;
+      case 'apple':
+        const appleMatch = url.match(/pl\.(.+)$/);
+        return appleMatch ? `pl.${appleMatch[1]}` : null;
+      default:
+        return null;
+    }
+  };
+
   const handleLoadPlaylist = async () => {
     if (!urlInputRef.current) return;
 
     const url = urlInputRef.current.value.trim();
-    const playlistId = extractPlaylistIdFromUrl(url);
+    const service = determinePlaylistService(url);
 
+    if (!service) {
+      setError('Invalid playlist URL. Please use a Spotify or Apple Music playlist URL.');
+      return;
+    }
+
+    const playlistId = extractPlaylistIdFromUrl(url, service);
+    console.log('playlistId', playlistId);
     if (!playlistId) {
-      setError('Invalid playlist URL');
+      setError('Invalid playlist URL format');
       return;
     }
 
@@ -38,13 +61,31 @@ export function LoadPlaylistCard() {
     setError('');
 
     try {
-      const loadedPlaylist = await SpotifyService.getPlaylist(playlistId);
+      let loadedPlaylist;
+      
+      if (service === 'spotify') {
+        loadedPlaylist = await SpotifyService.getPlaylist(playlistId);
+        setPlaylistImage(loadedPlaylist.images[0].url);
+      } else {
+        const appleMusicService = AppleMusicService.getInstance();
+        loadedPlaylist = await appleMusicService.getPlaylist(playlistId); // Apple Music needs full URL
+        setPlaylistImage(loadedPlaylist.image || '');
+    }
+
       PlaylistState.setSourcePlaylist(loadedPlaylist);
+      PlaylistState.setSourcePlatform(service); // Add this to PlaylistState if not exists
+      
       setPlaylist(loadedPlaylist);
-      setPlaylistImage(loadedPlaylist.images ? loadedPlaylist.images[0].url : '');
-      setShowPlaylistView(true); // Show playlist view after successful load
+      
+
+      setShowPlaylistView(true);
     } catch (error) {
-      setError('Failed to load playlist');
+      console.error('Failed to load playlist:', error);
+      setError(
+        service === 'apple' 
+          ? "Failed to load Apple Music playlist. Please ensure you\'re authorized." 
+          : 'Failed to load Spotify playlist'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -76,7 +117,7 @@ export function LoadPlaylistCard() {
           <input
             type="url"
             ref={urlInputRef}
-            placeholder="Paste playlist URL here"
+            placeholder="Paste Spotify or Apple Music playlist URL"
             class="url-input"
           />
           <button 
@@ -92,12 +133,11 @@ export function LoadPlaylistCard() {
         </div>
       ) : (
         <div class="card" id="playlist-card">
-          <h2>From Your Spotify Account</h2>
+          <h2>From Your {PlaylistState.getSourcePlatform()} Account</h2>
           <div class="account-row">
             <div class="account-info">
-              <i class="fab fa-spotify" />
-              {/* <img src="/spotify-icon.svg" alt="Spotify" class="platform-icon" /> */}
-              <span>My Spotify Music Library</span>
+              <i class={`fab fa-${PlaylistState.getSourcePlatform()}`} />
+              <span>My {PlaylistState.getSourcePlatform()} Music Library</span>
             </div>
             <div class="user-info">
               <span class="username">Justin Crisp</span>

@@ -3,10 +3,12 @@ import type { SpotifyPlaylist } from "./SpotifyPlaylist";
 // Basic interfaces for the generic playlist
 export interface GenericArtist {
     name: string;
+    id?: string;
 }
 
 export interface GenericAlbum {
     name: string;
+    id?: string;
 }
 
 export interface GenericTrack {
@@ -15,6 +17,12 @@ export interface GenericTrack {
     album: GenericAlbum;
     duration_ms: number;
     image?: string;
+    id?: string;
+}
+
+export interface GenericImage {
+    url: string;
+    id?: string;
 }
 
 export class Playlist {
@@ -23,13 +31,15 @@ export class Playlist {
     tracks: GenericTrack[];
     totalTracks: number;
     image?: string;
-
-    constructor(name: string, description: string, tracks: GenericTrack[], image?: string) {
+    images?: GenericImage[];
+    id?: string;
+    constructor(name: string, description: string, tracks: GenericTrack[], image?: string, images?: GenericImage[]) {
         this.name = name;
         this.description = description;
         this.tracks = tracks;
         this.totalTracks = tracks.length;
         this.image = image ?? '';
+        this.images = images ?? [];
     }
 
     // Static method to convert from SpotifyPlaylist
@@ -46,7 +56,8 @@ export class Playlist {
             spotifyPlaylist.name,
             spotifyPlaylist.description,
             tracks,
-            spotifyPlaylist.images[0].url
+            spotifyPlaylist.images[0].url,
+            spotifyPlaylist.images.map(image => ({ url: image.url }))
         );
     }
 

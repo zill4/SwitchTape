@@ -2,6 +2,7 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import type { GenericTrack, Playlist } from '../models/Playlist';
 import { app } from '../../firebase';
 import { ResponseHandler } from './responseHandler';
+import { AppleMusicPlaylist } from '../models/AppleMusicPlaylist';
 
 export class AppleMusicService {
     private static instance: AppleMusicService;
@@ -45,12 +46,12 @@ export class AppleMusicService {
         }
     }
 
-    async getPlaylist(url: string): Promise<Playlist> {
+    async getPlaylist(playlistId: string): Promise<Playlist> {
         if (!this.isInitialized) {
             await this.initialize();
         }
 
-        const playlistId = this.extractPlaylistId(url);
+        // const playlistId = this.extractPlaylistId(url);
         if (!playlistId) {
             throw new Error('Invalid Apple Music playlist URL');
         }
@@ -132,6 +133,7 @@ export class AppleMusicService {
             description: applePlaylist.attributes.description?.standard || '',
             tracks,
             totalTracks: tracks.length,
+            image: applePlaylist.attributes.artwork.url.replace('{w}x{h}', '300x300'),
             getFormattedDuration: function() {
                 const totalMs = tracks.reduce((sum: any, track: { duration_ms: any; }) => sum + track.duration_ms, 0);
                 const minutes = Math.floor(totalMs / 60000);
@@ -141,6 +143,10 @@ export class AppleMusicService {
                 return [...new Set(tracks.flatMap((track: { artists: any[]; }) => track.artists.map((artist: { name: any; }) => artist.name)))].join(', ');
             }
         };
+    }
+    
+    private transformApplePlaylist(applePlaylist: any): Playlist {
+        return new AppleMusicPlaylist(applePlaylist);
     }
 
     private extractPlaylistId(url: string): string | null {

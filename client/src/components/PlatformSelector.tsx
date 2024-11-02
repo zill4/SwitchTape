@@ -64,7 +64,7 @@ export function PlatformSelector({ sourcePlatform = 'spotify' }) {
         const appleMusic = AppleMusicService.getInstance();
         await appleMusic.authorize();
         setSelectedPlatform(platformId);
-        PlaylistState.setDestination(platformId);
+        PlaylistState.setDestinationPlaylistId(platformId);
       } catch (error) {
         setError('Failed to authorize Apple Music');
       }
