@@ -6,6 +6,7 @@ import type { GenericTrack } from '../models/Playlist';
 import '../styles/SelectDestination.css';
 import type { Playlist } from '../models/Playlist';
 import type { SpotifyPlaylist } from '../models/SpotifyPlaylist';
+import type { AppleMusicPlaylist } from '../models/AppleMusicPlaylist';
 
 interface Platform {
   id: string;
@@ -20,12 +21,12 @@ interface ConversionProgress {
   tracks: { name: string; artist: string; success: boolean; }[];
 }
 
-export function PlatformSelector({ sourcePlatform = 'spotify' }) {
+export function PlatformSelector() {
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isConverting, setIsConverting] = useState(false);
   const [progress, setProgress] = useState<ConversionProgress | null>(null);
-  const [sourcePlaylist, setSourcePlaylist] = useState<Playlist | SpotifyPlaylist | null>(null);
+  const [sourcePlaylist, setSourcePlaylist] = useState<Playlist | SpotifyPlaylist | AppleMusicPlaylist | null>(null);
   const [loadingPlatform, setLoadingPlatform] = useState<string | null>(null);
 
   useEffect(() => {
@@ -40,15 +41,16 @@ export function PlatformSelector({ sourcePlatform = 'spotify' }) {
       setSourcePlaylist(existingPlaylist);
     } else {
       // Redirect if no playlist is selected
-      window.location.href = '/load-playlist';
+      console.log('no playlist in state');
+    //   window.location.href = '/load-playlist';
     }
 
     return () => unsubscribe();
   }, []);
 
   const platforms: Platform[] = [
-    { id: 'spotify', name: 'Spotify', icon: 'fab fa-spotify', isSource: sourcePlatform === 'spotify' },
-    { id: 'apple', name: 'Apple Music', icon: 'fab fa-apple', isSource: sourcePlatform === 'apple' },
+    { id: 'spotify', name: 'Spotify', icon: 'fab fa-spotify', isSource: sourcePlaylist?.platform === 'spotify' },
+    { id: 'apple', name: 'Apple Music', icon: 'fab fa-apple', isSource: sourcePlaylist?.platform === 'apple' },
     // { id: 'youtube', name: 'YouTube', icon: 'fab fa-youtube', isSource: sourcePlatform === 'youtube' },
     // { id: 'deezer', name: 'Deezer', icon: 'fas fa-music', isSource: sourcePlatform === 'deezer' },
     // { id: 'tidal', name: 'Tidal', icon: 'fas fa-wave-square', isSource: sourcePlatform === 'tidal' },

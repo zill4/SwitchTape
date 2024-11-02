@@ -57,7 +57,7 @@ export class SpotifyPlaylist {
     readonly tracks: SpotifyTrack[];
     readonly uri: string;
     readonly totalTracks: number;
-
+    readonly platform: 'spotify';
     constructor(playlistData: SpotifyPlaylistData) {
         this.id = playlistData.id;
         this.name = playlistData.name;
@@ -66,6 +66,7 @@ export class SpotifyPlaylist {
         this.uri = playlistData.uri;
         this.totalTracks = playlistData.tracks.total;
         this.tracks = this.processTracks(playlistData.tracks.items);
+        this.platform = 'spotify';
     }
 
     private processTracks(items: SpotifyTrackItem[]): SpotifyTrack[] {

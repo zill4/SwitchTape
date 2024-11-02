@@ -141,7 +141,8 @@ export class AppleMusicService {
             },
             getArtistNames: function(track: GenericTrack): string {
                 return [...new Set(tracks.flatMap((track: { artists: any[]; }) => track.artists.map((artist: { name: any; }) => artist.name)))].join(', ');
-            }
+            },
+            platform: 'apple'
         };
     }
     

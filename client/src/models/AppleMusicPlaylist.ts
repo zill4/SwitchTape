@@ -1,6 +1,7 @@
 import { Playlist, type GenericTrack, type GenericArtist } from "./Playlist";
 
 export class AppleMusicPlaylist extends Playlist {
+    readonly platform: 'apple';
     constructor(playlistData: any) {
         // Get the first item since Apple returns an array in data[0]
         const data = playlistData.data[0];
@@ -19,6 +20,7 @@ export class AppleMusicPlaylist extends Playlist {
                 url: data.attributes.artwork.url.replace('{w}x{h}', '300x300')
             }];
         }
+        this.platform = 'apple';
     }
 
     private processTracks(items: any[]): GenericTrack[] {

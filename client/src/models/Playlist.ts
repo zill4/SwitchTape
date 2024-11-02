@@ -33,13 +33,15 @@ export class Playlist {
     image?: string;
     images?: GenericImage[];
     id?: string;
-    constructor(name: string, description: string, tracks: GenericTrack[], image?: string, images?: GenericImage[]) {
+    platform: 'spotify' | 'apple' | undefined;
+    constructor(name: string, description: string, tracks: GenericTrack[], image?: string, images?: GenericImage[], platform?: 'spotify' | 'apple') {
         this.name = name;
         this.description = description;
         this.tracks = tracks;
         this.totalTracks = tracks.length;
         this.image = image ?? '';
         this.images = images ?? [];
+        this.platform = platform;
     }
 
     // Static method to convert from SpotifyPlaylist
@@ -57,7 +59,8 @@ export class Playlist {
             spotifyPlaylist.description,
             tracks,
             spotifyPlaylist.images[0].url,
-            spotifyPlaylist.images.map(image => ({ url: image.url }))
+            spotifyPlaylist.images.map(image => ({ url: image.url })),
+            'spotify'
         );
     }
 
