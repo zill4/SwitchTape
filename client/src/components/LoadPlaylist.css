@@ -1,10 +1,7 @@
 .container {
     width: 100%;
-    max-width: 800px;
+    max-width: 600px;
     margin: 0 auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
 }
 
 header {
@@ -36,70 +33,65 @@ h1 {
 
 .card {
     width: 100%;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 2rem;
-    padding: 3rem;
-    text-align: center;
-    backdrop-filter: blur(10px);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    background: var(--color-white);
+    border: 1px solid var(--color-black);
+    padding: 2rem;
+    margin-top: 2rem;
+    color: var(--color-black);
 }
 
 h2 {
-    font-size: 2.5rem;
-    margin-bottom: 1rem;
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+    text-transform: uppercase;
     font-weight: bold;
 }
 
 p {
-    color: rgba(255, 255, 255, 0.7);
-    margin-bottom: 2rem;
-    font-size: 1.2rem;
+    color: var(--color-black);
+    margin-bottom: 1.5rem;
+    font-size: 1rem;
 }
 
 .url-input {
     width: 100%;
-    padding: 1.2rem;
-    border-radius: 0.75rem;
-    border: none;
-    background: white;
-    font-size: 1.1rem;
-    margin-bottom: 1.5rem;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    padding: 0.75rem;
+    border: 1px solid var(--color-black);
+    background: var(--color-white);
+    font-size: 1rem;
+    margin-bottom: 1rem;
+}
+
+.url-input:focus {
+    outline: 2px solid var(--color-red);
 }
 
 .load-button {
     width: 100%;
-    padding: 1.2rem;
-    background: #7C5DFA;
-    color: white;
+    padding: 0.75rem;
+    background: var(--color-red);
+    color: var(--color-white);
     border: none;
-    border-radius: 2rem;
-    font-size: 1.1rem;
-    font-weight: 600;
+    font-size: 1rem;
+    text-transform: uppercase;
     cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(124, 93, 250, 0.3);
 }
 
 .load-button:hover {
-    background: #6B4FF8;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(124, 93, 250, 0.4);
+    background: #cc0000;
 }
 
 .load-button:disabled {
-    background: #4a4a4a;
+    background: #999999;
     cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
 }
 
 .error-message {
-    color: #ff6b6b;
+    color: var(--color-red);
     margin-top: 1rem;
     padding: 0.75rem;
-    border-radius: 0.5rem;
-    background: rgba(255, 107, 107, 0.1);
+    border: 1px solid var(--color-red);
+    background: var(--color-white);
 }
 
 .hidden {
@@ -111,10 +103,9 @@ p {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem 1.5rem;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 1rem;
-    margin: 2rem 0;
+    padding: 1rem;
+    border: 1px solid var(--color-black);
+    margin: 1rem 0;
 }
 
 .account-info {
@@ -132,7 +123,7 @@ p {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--color-black);
 }
 
 .playlist-info {
@@ -146,25 +137,22 @@ p {
 .playlist-cover {
     width: 120px;
     height: 120px;
-    border-radius: 1rem;
     object-fit: cover;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--color-black);
 }
 
 .choose-destination-button {
     display: inline-block;
-    background: #7C5DFA;
-    color: white;
+    width: 100%;
+    background: var(--color-red);
+    color: var(--color-white);
     text-decoration: none;
-    padding: 1.2rem 2.5rem;
-    border-radius: 2rem;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(124, 93, 250, 0.3);
+    padding: 0.75rem;
+    text-transform: uppercase;
+    text-align: center;
+    font-weight: 500;
 }
 
 .choose-destination-button:hover {
-    background: #6B4FF8;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(124, 93, 250, 0.4);
+    background: #cc0000;
 }
