@@ -2,6 +2,7 @@ import { h } from 'preact';
 import { useState, useEffect } from 'preact/hooks';
 import { PlaylistState } from '../state/playlistState';
 import { AppleMusicService } from '../services/AppleMusic';
+import { SpotifyService } from '../services/spotify';
 import '../styles/ConversionProgress.css';
 
 export function ConversionProgressCard() {
@@ -22,11 +23,11 @@ export function ConversionProgressCard() {
     const convertPlaylist = async () => {
       if (!playlist || !playlist.tracks) return;
 
-      const appleMusic = AppleMusicService.getInstance();
+      const destinationPlatform = PlaylistState.getDestinationPlatform();
       const destinationPlaylistId = PlaylistState.getDestinationPlaylistId();
       
-      if (!destinationPlaylistId) {
-        setError('No destination playlist ID found');
+      if (!destinationPlaylistId || !destinationPlatform) {
+        setError('Missing destination information');
         return;
       }
 
@@ -34,25 +35,49 @@ export function ConversionProgressCard() {
       
       try {
         setStatus('Creating playlist...');
-        await appleMusic.addTracksToPlaylist(
-          destinationPlaylistId,
-          playlist.tracks,
-          (status, progress, phase, currentTrack) => {
-            setStatus(status);
-            setProgress(progress);
-            if (phase === 'searching') {
-              setSearchingTrack(currentTrack ? `${currentTrack.name} - ${currentTrack.artists[0].name}` : '');
-              setSearchedTracks(prev => prev + 1);
-            } else {
-              const newTracks = currentTrack ? [{
-                name: currentTrack.name,
-                artist: Array.isArray(currentTrack.artists) ? currentTrack.artists[0].name : currentTrack.artists,
-                success: true
-              }] : [];
-              setConvertedTracks(prev => [...prev, ...newTracks]);
+
+        if (destinationPlatform === 'apple') {
+          const appleMusic = AppleMusicService.getInstance();
+          await appleMusic.addTracksToPlaylist(
+            destinationPlaylistId,
+            playlist.tracks,
+            (status, progress, phase, currentTrack) => {
+              setStatus(status);
+              setProgress(progress);
+              if (phase === 'searching') {
+                setSearchingTrack(currentTrack ? `${currentTrack.name} - ${currentTrack.artists[0].name}` : '');
+                setSearchedTracks(prev => prev + 1);
+              } else {
+                const newTracks = currentTrack ? [{
+                  name: currentTrack.name,
+                  artist: Array.isArray(currentTrack.artists) ? currentTrack.artists[0].name : currentTrack.artists,
+                  success: true
+                }] : [];
+                setConvertedTracks(prev => [...prev, ...newTracks]);
+              }
             }
-          }
-        );
+          );
+        } else if (destinationPlatform === 'spotify') {
+          await SpotifyService.addTracksToPlaylist(
+            destinationPlaylistId,
+            playlist.tracks,
+            (status, progress, phase, currentTrack) => {
+              setStatus(status);
+              setProgress(progress);
+              if (phase === 'searching') {
+                setSearchingTrack(currentTrack ? `${currentTrack.name} - ${currentTrack.artists[0].name}` : '');
+                setSearchedTracks(prev => prev + 1);
+              } else {
+                const newTracks = currentTrack ? [{
+                  name: currentTrack.name,
+                  artist: Array.isArray(currentTrack.artists) ? currentTrack.artists[0].name : currentTrack.artists,
+                  success: true
+                }] : [];
+                setConvertedTracks(prev => [...prev, ...newTracks]);
+              }
+            }
+          );
+        }
       } catch (error) {
         console.error('Conversion error:', error);
         setError('Failed to convert some tracks');
@@ -92,12 +117,12 @@ export function ConversionProgressCard() {
           </div>
         ))}
       </div>
-
+{/* 
       {!isConverting && !error && (
         <button class="save-button" onClick={handleSavePlaylist}>
           SAVE PLAYLIST
         </button>
-      )}
+      )} */}
 
       {error && (
         <div class="error-message">

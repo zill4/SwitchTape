@@ -7,7 +7,32 @@ import type { GenericTrack } from "../models/Playlist";
 export class SpotifyService {
     private static baseUrl = 'https://api.spotify.com/v1';
     private static functions = getFunctions(app);
+    private static clientId = import.meta.env.PUBLIC_SPOTIFY_CLIENT_ID;
+    private static redirectUri = typeof window !== 'undefined' 
+        ? `${window.location.origin}/spotify` 
+        : '';
     
+    static authorize() {
+        if (typeof window === 'undefined') return;
+
+        const scope = [
+            'playlist-modify-private',
+            'playlist-modify-public',
+            'user-read-private',
+            'user-read-email'
+        ].join(' ');
+
+        const params = new URLSearchParams({
+            response_type: 'code',
+            client_id: this.clientId,
+            scope,
+            redirect_uri: this.redirectUri,
+            state: crypto.randomUUID()
+        });
+
+        window.location.href = `https://accounts.spotify.com/authorize?${params.toString()}`;
+    }
+
     private static async getAccessToken(): Promise<string> {
         // Try to get token from localStorage first
         const storedToken = localStorage.getItem('spotify_access_token');
@@ -18,8 +43,15 @@ export class SpotifyService {
             return storedToken;
         }
 
-        // If no valid token, refresh it
-        return await this.refreshAccessToken();
+        // If no valid token, check if we have a refresh token
+        const refreshToken = localStorage.getItem('spotify_refresh_token');
+        if (refreshToken) {
+            return await this.refreshAccessToken();
+        }
+
+        // If no refresh token, need to re-authorize
+        this.authorize();
+        throw new Error('Authorization required');
     }
     
     private static async refreshAccessToken(): Promise<string> {
@@ -72,6 +104,10 @@ export class SpotifyService {
 
     static async createPlaylist(name: string, description?: string): Promise<string> {
         const userId = await this.getCurrentUserId();
+        // Truncate description to 300 characters if it exists
+        const truncatedDescription = description && description.length > 300 
+            ? description.substring(0, 297) + '...'
+            : description;
         
         return ResponseHandler.retryWithNewToken(
             async (token: string) => {
@@ -83,12 +119,14 @@ export class SpotifyService {
                     },
                     body: JSON.stringify({
                         name,
-                        description,
+                        description: truncatedDescription,
                         public: false
                     })
                 });
 
                 if (!response.ok) {
+                    const errorData = await response.text();
+                    console.error('Playlist creation failed:', errorData);
                     throw new Error('Failed to create playlist');
                 }
 
@@ -100,12 +138,11 @@ export class SpotifyService {
     }
 
     static async searchTrack(track: GenericTrack): Promise<string | null> {
-        const query = `track:${track.name} artist:${track.artists[0].name}`;
-        
         return ResponseHandler.retryWithNewToken(
             async (token: string) => {
+                const query = encodeURIComponent(`track:${track.name} artist:${track.artists[0].name}`);
                 const response = await fetch(
-                    `${this.baseUrl}/search?q=${encodeURIComponent(query)}&type=track&limit=1`,
+                    `${this.baseUrl}/search?q=${query}&type=track&limit=1`,
                     {
                         headers: {
                             'Authorization': `Bearer ${token}`,
@@ -119,7 +156,7 @@ export class SpotifyService {
                 }
 
                 const data = await response.json();
-                if (data.tracks.items.length > 0) {
+                if (data.tracks?.items?.[0]) {
                     return data.tracks.items[0].uri;
                 }
                 return null;
@@ -163,38 +200,32 @@ export class SpotifyService {
             onProgress?.(
                 `Adding tracks ${i + 1}-${Math.min(i + BATCH_SIZE, foundTracks.length)} of ${foundTracks.length}...`,
                 progress,
-                'adding',
-                tracks[i]
+                'adding'
             );
 
-            try {
-                await ResponseHandler.retryWithNewToken(
-                    async (token: string) => {
-                        const response = await fetch(`${this.baseUrl}/playlists/${playlistId}/tracks`, {
-                            method: 'POST',
-                            headers: {
-                                'Authorization': `Bearer ${token}`,
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                uris: batch
-                            })
-                        });
+            await ResponseHandler.retryWithNewToken(
+                async (token: string) => {
+                    const response = await fetch(`${this.baseUrl}/playlists/${playlistId}/tracks`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            uris: batch
+                        })
+                    });
 
-                        if (!response.ok) {
-                            throw new Error('Failed to add tracks to playlist');
-                        }
-                    },
-                    async () => await this.getAccessToken()
-                );
+                    if (!response.ok) {
+                        throw new Error('Failed to add tracks to playlist');
+                    }
+                },
+                async () => await this.getAccessToken()
+            );
 
-                // Add a small delay between batches
-                if (i + BATCH_SIZE < foundTracks.length) {
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                }
-            } catch (error) {
-                console.error(`Failed to add batch ${i / BATCH_SIZE + 1}:`, error);
-                throw error;
+            // Add a small delay between batches
+            if (i + BATCH_SIZE < foundTracks.length) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
             }
         }
 

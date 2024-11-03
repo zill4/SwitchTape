@@ -96,3 +96,44 @@ export const getMusicKitToken = functions.https.onCall(async (data, context) => 
     throw new functions.https.HttpsError('internal', 'Failed to generate MusicKit token');
   }
 });
+
+export const exchangeSpotifyCode = functions.https.onCall(async (data, context) => {
+  try {
+    const { code, redirectUri } = data;
+    
+    // Get secrets from Firebase environment config
+    const spotifySecret = functions.config().spotify.client_secret;
+    const spotifyClientId = functions.config().spotify.client_id;
+    
+    const params = new URLSearchParams({
+      grant_type: 'authorization_code',
+      code,
+      redirect_uri: redirectUri,
+      client_id: spotifyClientId,
+      client_secret: spotifySecret
+    });
+
+    const response = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: params.toString()
+    });
+
+    if (!response.ok) {
+      console.error('Spotify token exchange failed:', await response.text());
+      throw new functions.https.HttpsError('internal', 'Failed to exchange code');
+    }
+
+    const tokenData = await response.json();
+    return {
+      access_token: tokenData.access_token,
+      refresh_token: tokenData.refresh_token,
+      expires_in: tokenData.expires_in
+    };
+  } catch (error) {
+    console.error('Error exchanging Spotify code:', error);
+    throw new functions.https.HttpsError('internal', 'Failed to exchange Spotify code');
+  }
+});

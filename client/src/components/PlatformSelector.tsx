@@ -7,6 +7,7 @@ import '../styles/SelectDestination.css';
 import type { Playlist } from '../models/Playlist';
 import type { SpotifyPlaylist } from '../models/SpotifyPlaylist';
 import type { AppleMusicPlaylist } from '../models/AppleMusicPlaylist';
+import { SpotifyService } from '../services/spotify';
 
 interface Platform {
   id: string;
@@ -41,8 +42,7 @@ export function PlatformSelector() {
       setSourcePlaylist(existingPlaylist);
     } else {
       // Redirect if no playlist is selected
-      console.log('no playlist in state');
-    //   window.location.href = '/load-playlist';
+      window.location.href = '/load-playlist';
     }
 
     return () => unsubscribe();
@@ -61,45 +61,59 @@ export function PlatformSelector() {
   const handlePlatformSelect = async (platformId: string) => {
     setLoadingPlatform(platformId);
     
-    if (platformId === 'apple') {
-      try {
-        const appleMusic = AppleMusicService.getInstance();
-        await appleMusic.authorize();
-        setSelectedPlatform(platformId);
-        PlaylistState.setDestinationPlaylistId(platformId);
-      } catch (error) {
-        setError('Failed to authorize Apple Music');
-      }
+    try {
+        if (platformId === 'apple') {
+            const appleMusic = AppleMusicService.getInstance();
+            await appleMusic.authorize();
+            setSelectedPlatform(platformId);
+        }
+        else if (platformId === 'spotify') {
+            await SpotifyService.authorize();
+            // The authorize method will redirect to Spotify
+            // You'll need to handle the callback in your callback route
+        }
+        
+        PlaylistState.setDestinationPlatform(platformId as "spotify" | "apple");
+    } catch (error) {
+        setError(`Failed to authorize ${platformId}`);
     }
-    // Add other platform handlers here
-    
     setLoadingPlatform(null);
   };
 
   const handleConversion = async () => {
     if (!sourcePlaylist) {
-        setError('No playlist selected');
-        return;
+      setError('No playlist selected');
+      return;
     }
 
     setIsConverting(true);
     
     try {
+      let destinationPlaylistId;
+      
+      if (selectedPlatform === 'apple') {
         const appleMusic = AppleMusicService.getInstance();
-        // Create the playlist first
-        const newPlaylistId = await appleMusic.createPlaylist(
-            sourcePlaylist.name,
-            sourcePlaylist.description
+        destinationPlaylistId = await appleMusic.createPlaylist(
+          sourcePlaylist.name,
+          sourcePlaylist.description
         );
-        
-        // Store the destination playlist ID in state
-        PlaylistState.setDestinationPlaylistId(newPlaylistId);
-        
+      } else if (selectedPlatform === 'spotify') {
+        destinationPlaylistId = await SpotifyService.createPlaylist(
+          sourcePlaylist.name,
+          sourcePlaylist.description
+        );
+      }
+      // Store the destination playlist ID in state
+      if (destinationPlaylistId) {
+        PlaylistState.setDestinationPlaylistId(destinationPlaylistId);
+        PlaylistState.setDestinationPlatform(selectedPlatform as "spotify" | "apple");
+
         // Now navigate to progress page
         window.location.href = '/conversion-progress';
+      }
     } catch (error) {
-        setError('Failed to create playlist');
-        setIsConverting(false);
+      setError('Failed to create playlist');
+      setIsConverting(false);
     }
   };
 

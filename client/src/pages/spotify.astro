@@ -1,0 +1,8 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { SpotifyCallback } from '../components/SpotifyCallback';
+---
+
+<Layout title="Authorizing Spotify">
+  <SpotifyCallback client:only="preact" />
+</Layout>

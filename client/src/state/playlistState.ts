@@ -5,7 +5,7 @@ import type { SpotifyPlaylist } from '../models/SpotifyPlaylist';
 interface PlaylistStateType {
   sourcePlaylist: Playlist | SpotifyPlaylist | AppleMusicPlaylist | null;
   sourcePlatform: 'spotify' | 'apple' | null;
-  destinationPlatform: string | null;
+  destinationPlatform: 'spotify' | 'apple' | null;
 }
 
 class PlaylistStateManager {
@@ -54,12 +54,22 @@ class PlaylistStateManager {
     this.notify();
   }
 
-  setDestinationPlaylistId(id: string) {
-    localStorage.setItem('destination_playlist_id', id);
+  getDestinationPlatform(): 'spotify' | 'apple' | null {
+    return this.state.destinationPlatform;
+  }
+
+  setDestinationPlatform(platform: 'spotify' | 'apple') {
+    this.state.destinationPlatform = platform;
+    this.notify();
   }
 
   getDestinationPlaylistId(): string | null {
     return localStorage.getItem('destination_playlist_id');
+  }
+
+  setDestinationPlaylistId(id: string) {
+    localStorage.setItem('destination_playlist_id', id);
+    this.notify();
   }
 }
 
