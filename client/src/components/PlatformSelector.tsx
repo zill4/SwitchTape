@@ -60,6 +60,7 @@ export function PlatformSelector() {
 
   const handlePlatformSelect = async (platformId: string) => {
     setLoadingPlatform(platformId);
+    setError(null);
     
     try {
         if (platformId === 'apple') {
@@ -69,12 +70,12 @@ export function PlatformSelector() {
         }
         else if (platformId === 'spotify') {
             await SpotifyService.authorize();
-            // The authorize method will redirect to Spotify
-            // You'll need to handle the callback in your callback route
+            setSelectedPlatform(platformId);
         }
         
         PlaylistState.setDestinationPlatform(platformId as "spotify" | "apple");
     } catch (error) {
+        console.error('Authorization error:', error);
         setError(`Failed to authorize ${platformId}`);
     }
     setLoadingPlatform(null);
@@ -142,11 +143,6 @@ export function PlatformSelector() {
             <span class="platform-name">
               {loadingPlatform === platform.id ? 'Loading...' : platform.name}
             </span>
-            {loadingPlatform === platform.id && (
-              <div class="loading-overlay">
-                <div class="loading-bar"></div>
-              </div>
-            )}
           </button>
         ))}
       </div>

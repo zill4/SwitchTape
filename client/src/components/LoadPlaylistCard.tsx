@@ -21,22 +21,27 @@ export function LoadPlaylistCard() {
   const playlistCardRef = useRef<HTMLDivElement>(null);
 
   const determinePlaylistService = (url: string): 'spotify' | 'apple' | null => {
-    if (url.includes('spotify.com')) return 'spotify';
-    if (url.includes('music.apple.com')) return 'apple';
+    if (url.includes('open.spotify.com')) {
+      if (url.includes('/playlist/') || url.includes('/album/')) {
+        return 'spotify';
+      }
+    } else if (url.includes('music.apple.com')) {
+      if (url.includes('/playlist/') || url.includes('/album/')) {
+        return 'apple';
+      }
+    }
     return null;
   };
 
   const extractPlaylistIdFromUrl = (url: string, service: 'spotify' | 'apple'): string | null => {
-    switch (service) {
-      case 'spotify':
-        const spotifyMatch = url.match(/playlist\/([a-zA-Z0-9]+)/);
-        return spotifyMatch ? spotifyMatch[1] : null;
-      case 'apple':
-        const appleMatch = url.match(/pl\.(.+)$/);
-        return appleMatch ? `pl.${appleMatch[1]}` : null;
-      default:
-        return null;
+    if (service === 'spotify') {
+      const match = url.match(/\/(playlist|album)\/([a-zA-Z0-9]+)/);
+      return match ? match[2] : null;
+    } else if (service === 'apple') {
+      const match = url.match(/\/(playlist|album)\/.*\/(pl\.[a-zA-Z0-9]+)/);
+      return match ? match[3] : null;
     }
+    return null;
   };
 
   const handleLoadPlaylist = async () => {

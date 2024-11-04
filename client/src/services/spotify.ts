@@ -1,3 +1,9 @@
+declare global {
+    interface Window {
+        spotifyCallback: (code: string) => Promise<void>;
+    }
+}
+
 import { ResponseHandler } from "./responseHandler";
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { app } from '../../firebase';
@@ -6,33 +12,77 @@ import type { GenericTrack } from "../models/Playlist";
 
 export class SpotifyService {
     private static baseUrl = 'https://api.spotify.com/v1';
-    private static functions = getFunctions(app);
+    private static functions = getFunctions();
     private static clientId = import.meta.env.PUBLIC_SPOTIFY_CLIENT_ID;
     private static redirectUri = typeof window !== 'undefined' 
         ? `${window.location.origin}/spotify` 
         : '';
     
-    static authorize() {
-        if (typeof window === 'undefined') return;
-
-        const scope = [
-            'playlist-modify-private',
-            'playlist-modify-public',
-            'user-read-private',
-            'user-read-email'
-        ].join(' ');
-
-        const params = new URLSearchParams({
-            response_type: 'code',
-            client_id: this.clientId,
-            scope,
-            redirect_uri: this.redirectUri,
-            state: crypto.randomUUID()
-        });
-
-        window.location.href = `https://accounts.spotify.com/authorize?${params.toString()}`;
-    }
-
+        static async authorize(): Promise<void> {
+            if (typeof window === 'undefined') return;
+    
+            const scope = [
+                'playlist-modify-private',
+                'playlist-modify-public',
+                'user-read-private',
+                'user-read-email'
+            ].join(' ');
+    
+            const params = new URLSearchParams({
+                response_type: 'code',
+                client_id: this.clientId,
+                scope,
+                redirect_uri: this.redirectUri,
+                state: crypto.randomUUID()
+            });
+            const authUrl = `https://accounts.spotify.com/authorize?${params.toString()}`;
+        
+            return new Promise((resolve, reject) => {
+                // Open popup
+                const popup = window.open(
+                    authUrl,
+                    'Spotify Login',
+                    'width=500,height=700,left=200,top=100'
+                );
+    
+                // Handle popup closed
+                const popupTimer = setInterval(() => {
+                    if (popup?.closed) {
+                        clearInterval(popupTimer);
+                        reject(new Error('Authentication cancelled'));
+                    }
+                }, 1000);
+    
+                // Handle auth callback
+                window.spotifyCallback = async (code: string) => {
+                    if (popup) popup.close();
+                    clearInterval(popupTimer);
+    
+                    try {
+                        const functions = getFunctions();
+                        const exchangeSpotifyCode = httpsCallable(functions, 'exchangeSpotifyCode');
+                        
+                        const result = await exchangeSpotifyCode({ 
+                            code,
+                            redirectUri: this.redirectUri
+                        });
+                        
+                        const { access_token, refresh_token, expires_in } = result.data as any;
+    
+                        localStorage.setItem('spotify_access_token', access_token);
+                        localStorage.setItem('spotify_refresh_token', refresh_token);
+                        localStorage.setItem('spotify_token_expiry', 
+                            (Date.now() + (expires_in * 1000)).toString()
+                        );
+    
+                        resolve();
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+            });
+        }
+    
     private static async getAccessToken(): Promise<string> {
         // Try to get token from localStorage first
         const storedToken = localStorage.getItem('spotify_access_token');
@@ -74,30 +124,115 @@ export class SpotifyService {
         }
     }
   
-    static async getPlaylist(playlistId: string): Promise<SpotifyPlaylist> {
+    static async getPlaylist(id: string): Promise<SpotifyPlaylist> {
+        // Try public access first with client credentials token
+        try {
+            const getSpotifyToken = httpsCallable(this.functions, 'getSpotifyToken');
+            const result = await getSpotifyToken();
+            const { access_token } = result.data as any;
+
+            // Try playlist endpoint first
+            const response = await fetch(`${this.baseUrl}/playlists/${id}`, {
+                headers: {
+                    'Authorization': `Bearer ${access_token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                return new SpotifyPlaylist(data);
+            }
+
+            // If not found, try album endpoint
+            const albumResponse = await fetch(`${this.baseUrl}/albums/${id}`, {
+                headers: {
+                    'Authorization': `Bearer ${access_token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (albumResponse.ok) {
+                const albumData = await albumResponse.json();
+                const playlistData = {
+                    id: albumData.id,
+                    name: albumData.name,
+                    description: `Album by ${albumData.artists[0].name}`,
+                    images: albumData.images,
+                    tracks: {
+                        items: albumData.tracks.items.map((track: any) => ({
+                            track: {
+                                ...track,
+                                album: albumData
+                            }
+                        })),
+                        total: albumData.tracks.total
+                    },
+                    uri: albumData.uri
+                };
+                return new SpotifyPlaylist(playlistData);
+            }
+
+            // If we get a 401, try user auth
+            if (response.status === 401 || albumResponse.status === 401) {
+                return this.getPlaylistWithUserAuth(id);
+            }
+
+            throw new Error('Resource not found');
+        } catch (error) {
+            console.error('Failed to fetch playlist/album:', error);
+            throw error;
+        }
+    }
+
+    private static async getPlaylistWithUserAuth(id: string): Promise<SpotifyPlaylist> {
         return ResponseHandler.retryWithNewToken(
             async (token: string) => {
-                const response = await fetch(`${this.baseUrl}/playlists/${playlistId}`, {
+                // Try playlist endpoint first
+                const playlistResponse = await fetch(`${this.baseUrl}/playlists/${id}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     }
                 });
                 
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch playlist: ${response.statusText}`);
+                if (playlistResponse.ok) {
+                    const data = await playlistResponse.json();
+                    return new SpotifyPlaylist(data);
                 }
-    
-                const data = await response.json();
-                
-                // Validate essential data
-                if (!data.tracks || !data.name) {
-                    throw new Error('Invalid playlist data received');
+
+                // If not found, try album endpoint
+                const albumResponse = await fetch(`${this.baseUrl}/albums/${id}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!albumResponse.ok) {
+                    throw new Error('Failed to fetch playlist or album');
                 }
-                
-                // Return new SpotifyPlaylist instance
-                return new SpotifyPlaylist(data);
-            },  
+
+                const albumData = await albumResponse.json();
+                const playlistData = {
+                    id: albumData.id,
+                    name: albumData.name,
+                    description: `Album by ${albumData.artists[0].name}`,
+                    images: albumData.images,
+                    tracks: {
+                        items: albumData.tracks.items.map((track: any) => ({
+                            track: {
+                                ...track,
+                                album: albumData
+                            }
+                        })),
+                        total: albumData.tracks.total
+                    },
+                    uri: albumData.uri
+                };
+
+                return new SpotifyPlaylist(playlistData);
+            },
             async () => await this.getAccessToken()
         );
     }
