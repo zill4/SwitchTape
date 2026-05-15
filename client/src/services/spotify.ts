@@ -5,29 +5,28 @@ declare global {
 }
 
 import { ResponseHandler } from "./responseHandler";
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import { app } from '../../firebase';
 import { SpotifyPlaylist } from "../models/SpotifyPlaylist";
 import type { GenericTrack } from "../models/Playlist";
+import type { SpotifyTopTrack, SpotifyTopArtist } from "../models/ReportCard";
 
 export class SpotifyService {
     private static baseUrl = 'https://api.spotify.com/v1';
-    private static functions = getFunctions();
     private static clientId = import.meta.env.PUBLIC_SPOTIFY_CLIENT_ID;
-    private static redirectUri = typeof window !== 'undefined' 
-        ? `${window.location.origin}/spotify` 
+    private static redirectUri = typeof window !== 'undefined'
+        ? `${window.location.origin}/spotify`
         : '';
-    
+
         static async authorize(): Promise<void> {
             if (typeof window === 'undefined') return;
-    
+
             const scope = [
                 'playlist-modify-private',
                 'playlist-modify-public',
                 'user-read-private',
-                'user-read-email'
+                'user-read-email',
+                'user-top-read'
             ].join(' ');
-    
+
             const params = new URLSearchParams({
                 response_type: 'code',
                 client_id: this.clientId,
@@ -36,45 +35,41 @@ export class SpotifyService {
                 state: crypto.randomUUID()
             });
             const authUrl = `https://accounts.spotify.com/authorize?${params.toString()}`;
-        
+
             return new Promise((resolve, reject) => {
-                // Open popup
                 const popup = window.open(
                     authUrl,
                     'Spotify Login',
                     'width=500,height=700,left=200,top=100'
                 );
-    
-                // Handle popup closed
+
                 const popupTimer = setInterval(() => {
                     if (popup?.closed) {
                         clearInterval(popupTimer);
                         reject(new Error('Authentication cancelled'));
                     }
                 }, 1000);
-    
-                // Handle auth callback
+
                 window.spotifyCallback = async (code: string) => {
                     if (popup) popup.close();
                     clearInterval(popupTimer);
-    
+
                     try {
-                        const functions = getFunctions();
-                        const exchangeSpotifyCode = httpsCallable(functions, 'exchangeSpotifyCode');
-                        
-                        const result = await exchangeSpotifyCode({ 
-                            code,
-                            redirectUri: this.redirectUri
+                        const response = await fetch('/api/exchange-spotify-code', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ code, redirectUri: this.redirectUri }),
                         });
-                        
-                        const { access_token, refresh_token, expires_in } = result.data as any;
-    
+
+                        if (!response.ok) throw new Error('Token exchange failed');
+                        const { access_token, refresh_token, expires_in } = await response.json();
+
                         localStorage.setItem('spotify_access_token', access_token);
                         localStorage.setItem('spotify_refresh_token', refresh_token);
-                        localStorage.setItem('spotify_token_expiry', 
+                        localStorage.setItem('spotify_token_expiry',
                             (Date.now() + (expires_in * 1000)).toString()
                         );
-    
+
                         resolve();
                     } catch (error) {
                         reject(error);
@@ -82,56 +77,53 @@ export class SpotifyService {
                 };
             });
         }
-    
+
     private static async getAccessToken(): Promise<string> {
-        // Try to get token from localStorage first
         const storedToken = localStorage.getItem('spotify_access_token');
         const tokenExpiry = localStorage.getItem('spotify_token_expiry');
-        
-        // Check if token exists and is not expired
+
         if (storedToken && tokenExpiry && Date.now() < parseInt(tokenExpiry)) {
             return storedToken;
         }
 
-        // If no valid token, check if we have a refresh token
         const refreshToken = localStorage.getItem('spotify_refresh_token');
         if (refreshToken) {
             return await this.refreshAccessToken();
         }
 
-        // If no refresh token, need to re-authorize
         this.authorize();
         throw new Error('Authorization required');
     }
-    
+
     private static async refreshAccessToken(): Promise<string> {
         try {
-            const getSpotifyToken = httpsCallable(this.functions, 'getSpotifyToken');
-            const result = await getSpotifyToken();
-            
-            const { access_token, expires_in } = result.data as any;
-            
-            // Store the new token and its expiry time
+            const response = await fetch('/api/spotify-token', { method: 'POST' });
+            if (!response.ok) throw new Error('Failed to refresh token');
+            const { access_token, expires_in } = await response.json();
+
             localStorage.setItem('spotify_access_token', access_token);
-            localStorage.setItem('spotify_token_expiry', 
+            localStorage.setItem('spotify_token_expiry',
                 (Date.now() + (expires_in * 1000)).toString()
             );
-            
+
             return access_token;
         } catch (error) {
             console.error('Error refreshing token:', error);
             throw error;
         }
     }
-  
-    static async getPlaylist(id: string): Promise<SpotifyPlaylist> {
-        // Try public access first with client credentials token
-        try {
-            const getSpotifyToken = httpsCallable(this.functions, 'getSpotifyToken');
-            const result = await getSpotifyToken();
-            const { access_token } = result.data as any;
 
-            // Try playlist endpoint first
+    private static async getClientToken(): Promise<string> {
+        const response = await fetch('/api/spotify-token', { method: 'POST' });
+        if (!response.ok) throw new Error('Failed to get client token');
+        const { access_token } = await response.json();
+        return access_token;
+    }
+
+    static async getPlaylist(id: string): Promise<SpotifyPlaylist> {
+        try {
+            const access_token = await this.getClientToken();
+
             const response = await fetch(`${this.baseUrl}/playlists/${id}`, {
                 headers: {
                     'Authorization': `Bearer ${access_token}`,
@@ -144,7 +136,6 @@ export class SpotifyService {
                 return new SpotifyPlaylist(data);
             }
 
-            // If not found, try album endpoint
             const albumResponse = await fetch(`${this.baseUrl}/albums/${id}`, {
                 headers: {
                     'Authorization': `Bearer ${access_token}`,
@@ -173,7 +164,6 @@ export class SpotifyService {
                 return new SpotifyPlaylist(playlistData);
             }
 
-            // If we get a 401, try user auth
             if (response.status === 401 || albumResponse.status === 401) {
                 return this.getPlaylistWithUserAuth(id);
             }
@@ -188,20 +178,18 @@ export class SpotifyService {
     private static async getPlaylistWithUserAuth(id: string): Promise<SpotifyPlaylist> {
         return ResponseHandler.retryWithNewToken(
             async (token: string) => {
-                // Try playlist endpoint first
                 const playlistResponse = await fetch(`${this.baseUrl}/playlists/${id}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     }
                 });
-                
+
                 if (playlistResponse.ok) {
                     const data = await playlistResponse.json();
                     return new SpotifyPlaylist(data);
                 }
 
-                // If not found, try album endpoint
                 const albumResponse = await fetch(`${this.baseUrl}/albums/${id}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -239,11 +227,10 @@ export class SpotifyService {
 
     static async createPlaylist(name: string, description?: string): Promise<string> {
         const userId = await this.getCurrentUserId();
-        // Truncate description to 300 characters if it exists
-        const truncatedDescription = description && description.length > 300 
+        const truncatedDescription = description && description.length > 300
             ? description.substring(0, 297) + '...'
             : description;
-        
+
         return ResponseHandler.retryWithNewToken(
             async (token: string) => {
                 const response = await fetch(`${this.baseUrl}/users/${userId}/playlists`, {
@@ -301,14 +288,13 @@ export class SpotifyService {
     }
 
     static async addTracksToPlaylist(
-        playlistId: string, 
+        playlistId: string,
         tracks: GenericTrack[],
         onProgress?: (status: string, progress: number, phase: 'searching' | 'adding', currentTrack?: GenericTrack) => void
     ): Promise<void> {
         const foundTracks: string[] = [];
         const notFoundTracks: GenericTrack[] = [];
 
-        // First, find all matching tracks
         for (let i = 0; i < tracks.length; i++) {
             const track = tracks[i];
             onProgress?.(
@@ -326,12 +312,11 @@ export class SpotifyService {
             }
         }
 
-        // Add tracks in batches of 100 (Spotify's limit)
         const BATCH_SIZE = 100;
         for (let i = 0; i < foundTracks.length; i += BATCH_SIZE) {
             const batch = foundTracks.slice(i, i + BATCH_SIZE);
             const progress = 50 + ((i / foundTracks.length) * 50);
-            
+
             onProgress?.(
                 `Adding tracks ${i + 1}-${Math.min(i + BATCH_SIZE, foundTracks.length)} of ${foundTracks.length}...`,
                 progress,
@@ -358,7 +343,6 @@ export class SpotifyService {
                 async () => await this.getAccessToken()
             );
 
-            // Add a small delay between batches
             if (i + BATCH_SIZE < foundTracks.length) {
                 await new Promise(resolve => setTimeout(resolve, 1000));
             }
@@ -385,6 +369,79 @@ export class SpotifyService {
 
                 const data = await response.json();
                 return data.id;
+            },
+            async () => await this.getAccessToken()
+        );
+    }
+
+    static async getUserProfile(): Promise<{ display_name: string; images: Array<{ url: string }> }> {
+        return ResponseHandler.retryWithNewToken(
+            async (token: string) => {
+                const response = await fetch(`${this.baseUrl}/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to get user profile');
+                }
+
+                const data = await response.json();
+                return { display_name: data.display_name, images: data.images };
+            },
+            async () => await this.getAccessToken()
+        );
+    }
+
+    static async getTopTracks(
+        timeRange: 'long_term' | 'medium_term' | 'short_term' = 'long_term'
+    ): Promise<SpotifyTopTrack[]> {
+        return ResponseHandler.retryWithNewToken(
+            async (token: string) => {
+                const response = await fetch(
+                    `${this.baseUrl}/me/top/tracks?time_range=${timeRange}&limit=50`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch top tracks');
+                }
+
+                const data = await response.json();
+                return data.items as SpotifyTopTrack[];
+            },
+            async () => await this.getAccessToken()
+        );
+    }
+
+    static async getTopArtists(
+        timeRange: 'long_term' | 'medium_term' | 'short_term' = 'long_term'
+    ): Promise<SpotifyTopArtist[]> {
+        return ResponseHandler.retryWithNewToken(
+            async (token: string) => {
+                const response = await fetch(
+                    `${this.baseUrl}/me/top/artists?time_range=${timeRange}&limit=50`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch top artists');
+                }
+
+                const data = await response.json();
+                return data.items as SpotifyTopArtist[];
             },
             async () => await this.getAccessToken()
         );

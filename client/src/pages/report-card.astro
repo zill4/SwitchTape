@@ -1,0 +1,8 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { ReportCard as ReportCardView } from '../components/ReportCard';
+---
+
+<Layout title="Your Music Report Card | SwitchTape">
+  <ReportCardView client:only="preact" />
+</Layout>
