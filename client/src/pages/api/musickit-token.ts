@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 
 export const prerender = false;
 
-export const POST: APIRoute = async () => {
+export const POST: APIRoute = async ({ request }) => {
     try {
         let privateKey = import.meta.env.APPLE_MUSIC_PRIVATE_KEY || '';
         const teamId = import.meta.env.APPLE_MUSIC_TEAM_ID;
@@ -19,9 +19,31 @@ export const POST: APIRoute = async () => {
             privateKey = `-----BEGIN PRIVATE KEY-----\n${privateKey}\n-----END PRIVATE KEY-----`;
         }
 
+        // Determine the origin requesting the token. MusicKit's auth handshake validates
+        // the user-token exchange against the origin claim in the dev token — if it's
+        // missing or doesn't match, you get AUTHORIZATION_ERROR after sign-in succeeds.
+        // We accept either the caller's Origin header or an env var override (comma-separated).
+        const envOrigins = (import.meta.env.APPLE_MUSIC_ALLOWED_ORIGINS || '')
+            .split(',')
+            .map((s: string) => s.trim())
+            .filter(Boolean);
+        const requestOrigin = request.headers.get('origin') || '';
+        const origins = envOrigins.length > 0
+            ? envOrigins
+            : requestOrigin
+                ? [requestOrigin]
+                : [];
+
         const header = { alg: 'ES256', kid: keyId };
         const now = Math.floor(Date.now() / 1000);
-        const payload = { iss: teamId, iat: now, exp: now + 86400 };
+        const payload: Record<string, unknown> = {
+            iss: teamId,
+            iat: now,
+            exp: now + 86400,
+        };
+        if (origins.length > 0) {
+            payload.origin = origins;
+        }
 
         const { subtle } = globalThis.crypto;
         const pemBody = privateKey
