@@ -77,7 +77,7 @@ Rules:
 - Vibe tags should be lowercase hashtags with no spaces (use camelCase or dashes)
 - Deep cut analysis should feel like it was written by a music journalist`;
 
-        const model = 'gemini-3.0-flash';
+        const model = 'gemini-3-flash-preview';
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
         const response = await fetch(url, {
@@ -90,7 +90,7 @@ Rules:
                 generationConfig: {
                     responseMimeType: 'application/json',
                     thinkingConfig: {
-                        thinkingBudget: -1,
+                        thinkingLevel: 'high',
                     },
                 },
             }),
