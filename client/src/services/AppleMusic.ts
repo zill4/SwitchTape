@@ -294,8 +294,8 @@ export class AppleMusicService {
             console.log('[AppleMusic] starting authorize()');
             const userToken = await this.withTimeout(
                 this.musicKit.authorize(),
-                60000,
-                'Apple Music authorization timed out. Check for an Apple sign-in popup or pop-up blocker.'
+                180000,
+                'Apple Music authorization timed out. Finish the Apple sign-in popup, then check whether the popup closed or the callback was blocked.'
             );
             const token = userToken || this.musicKit.musicUserToken;
             console.log('[AppleMusic] authorize() resolved. User token present:', !!token);

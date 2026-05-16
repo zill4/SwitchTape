@@ -4,9 +4,12 @@ export const prerender = false;
 
 export const POST: APIRoute = async ({ request }) => {
     try {
-        let privateKey = import.meta.env.APPLE_MUSIC_PRIVATE_KEY || '';
-        const teamId = import.meta.env.APPLE_MUSIC_TEAM_ID;
-        const keyId = import.meta.env.APPLE_MUSIC_KEY_ID;
+        const runtimeEnv = (globalThis as typeof globalThis & {
+            process?: { env?: Record<string, string | undefined> };
+        }).process?.env || {};
+        let privateKey = runtimeEnv.APPLE_MUSIC_PRIVATE_KEY || import.meta.env.APPLE_MUSIC_PRIVATE_KEY || '';
+        const teamId = runtimeEnv.APPLE_MUSIC_TEAM_ID || import.meta.env.APPLE_MUSIC_TEAM_ID;
+        const keyId = runtimeEnv.APPLE_MUSIC_KEY_ID || import.meta.env.APPLE_MUSIC_KEY_ID;
 
         if (!privateKey || !teamId || !keyId) {
             return new Response(JSON.stringify({ error: 'Apple Music not configured' }), {
@@ -20,19 +23,33 @@ export const POST: APIRoute = async ({ request }) => {
         }
 
         // Determine the origin requesting the token. MusicKit's auth handshake validates
-        // the user-token exchange against the origin claim in the dev token — if it's
-        // missing or doesn't match, you get AUTHORIZATION_ERROR after sign-in succeeds.
-        // We accept either the caller's Origin header or an env var override (comma-separated).
-        const envOrigins = (import.meta.env.APPLE_MUSIC_ALLOWED_ORIGINS || '')
+        // the user-token exchange against the origin claim in the dev token. Production
+        // redirects from apex to www, so production tokens include both canonical origins.
+        const envOrigins = (runtimeEnv.APPLE_MUSIC_ALLOWED_ORIGINS || import.meta.env.APPLE_MUSIC_ALLOWED_ORIGINS || '')
             .split(',')
             .map((s: string) => s.trim())
             .filter(Boolean);
         const requestOrigin = request.headers.get('origin') || '';
-        const origins = envOrigins.length > 0
-            ? envOrigins
-            : requestOrigin
-                ? [requestOrigin]
-                : [];
+        let requestHostname = '';
+
+        try {
+            requestHostname = requestOrigin ? new URL(requestOrigin).hostname : '';
+        } catch {
+            requestHostname = '';
+        }
+
+        const productionOrigins = ['https://switchtape.com', 'https://www.switchtape.com'];
+        const isProductionOrigin = requestHostname === 'switchtape.com'
+            || requestHostname === 'www.switchtape.com';
+        const origins = Array.from(new Set(
+            envOrigins.length > 0
+                ? envOrigins
+                : isProductionOrigin
+                    ? productionOrigins
+                    : requestOrigin
+                        ? [requestOrigin]
+                        : []
+        ));
 
         const header = { alg: 'ES256', kid: keyId };
         const now = Math.floor(Date.now() / 1000);
