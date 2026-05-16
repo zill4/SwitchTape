@@ -33,6 +33,10 @@ export function ReportCard() {
                 localStorage.removeItem(SOURCE_KEY);
             }
         }
+
+        AppleMusicService.getInstance().initialize().catch((err) => {
+            console.warn('[AppleMusic] preload failed:', err);
+        });
     }, []);
 
     const hasSpotifyToken = () => {

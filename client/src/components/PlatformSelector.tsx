@@ -45,6 +45,10 @@ export function PlatformSelector() {
       window.location.href = '/load-playlist';
     }
 
+    AppleMusicService.getInstance().initialize().catch((err) => {
+      console.warn('[AppleMusic] preload failed:', err);
+    });
+
     return () => unsubscribe();
   }, []);
 

@@ -6,6 +6,7 @@ export class AppleMusicService {
     private static instance: AppleMusicService;
     private musicKit: any;
     private isInitialized: boolean = false;
+    private initializationPromise: Promise<void> | null = null;
     private baseUrl = 'https://api.music.apple.com/v1';
 
     private constructor() {}
@@ -21,15 +22,18 @@ export class AppleMusicService {
         const cachedToken = localStorage.getItem('apple_developer_token');
         const tokenExpiry = localStorage.getItem('apple_token_expiry');
 
-        if (cachedToken && tokenExpiry && Date.now() < parseInt(tokenExpiry)) {
+        if (cachedToken && tokenExpiry && this.isCachedDeveloperTokenUsable(cachedToken, tokenExpiry)) {
             return cachedToken;
         }
+
+        localStorage.removeItem('apple_developer_token');
+        localStorage.removeItem('apple_token_expiry');
 
         try {
             const response = await fetch('/api/musickit-token', { method: 'POST' });
             if (!response.ok) throw new Error('Failed to get MusicKit token');
             const { token } = await response.json();
-            const expiresIn = 86400;
+            const expiresIn = this.getJwtSecondsUntilExpiry(token) || 86400;
 
             localStorage.setItem('apple_developer_token', token);
             localStorage.setItem('apple_token_expiry', (Date.now() + expiresIn * 1000).toString());
@@ -39,6 +43,46 @@ export class AppleMusicService {
             console.error('Failed to get developer token:', error);
             throw new Error('Failed to get Apple Music authorization token');
         }
+    }
+
+    private isCachedDeveloperTokenUsable(token: string, tokenExpiry: string): boolean {
+        const expiry = parseInt(tokenExpiry, 10);
+        if (!Number.isFinite(expiry) || Date.now() >= expiry - 60000) return false;
+
+        try {
+            const payload = this.decodeJwtPart(token, 1);
+            const now = Math.floor(Date.now() / 1000);
+            if (typeof payload.exp !== 'number' || payload.exp <= now + 60) return false;
+
+            const currentOrigin = window.location.origin;
+            const originClaim = payload.origin;
+            if (Array.isArray(originClaim)) return originClaim.includes(currentOrigin);
+            if (typeof originClaim === 'string') return originClaim === currentOrigin;
+
+            return false;
+        } catch {
+            return false;
+        }
+    }
+
+    private getJwtSecondsUntilExpiry(token: string): number | null {
+        try {
+            const payload = this.decodeJwtPart(token, 1);
+            if (typeof payload.exp !== 'number') return null;
+
+            return Math.max(0, payload.exp - Math.floor(Date.now() / 1000));
+        } catch {
+            return null;
+        }
+    }
+
+    private decodeJwtPart(token: string, partIndex: number): any {
+        const part = token.split('.')[partIndex];
+        if (!part) throw new Error('Invalid JWT');
+
+        const base64 = part.replace(/-/g, '+').replace(/_/g, '/');
+        const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, '=');
+        return JSON.parse(atob(padded));
     }
 
     async getPlaylist(playlistId: string): Promise<Playlist> {
@@ -157,9 +201,12 @@ export class AppleMusicService {
 
     async initialize(): Promise<void> {
         if (this.isInitialized) return;
+        if (this.initializationPromise) return this.initializationPromise;
 
-        try {
-            const token = await this.getToken();
+        this.initializationPromise = (async () => {
+            await this.waitForMusicKit();
+
+            const token = await this.getDeveloperToken();
 
             if (!token) {
                 throw new Error('Failed to get MusicKit token');
@@ -167,10 +214,54 @@ export class AppleMusicService {
 
             await this.configureMusicKit(token);
             this.musicKit = window.MusicKit.getInstance();
+
+            if (!this.musicKit) {
+                throw new Error('MusicKit instance was not created');
+            }
+
             this.isInitialized = true;
-        } catch (error) {
+            console.log('[AppleMusic] MusicKit initialized');
+        })().catch((error) => {
+            this.initializationPromise = null;
             console.error('Failed to initialize Apple Music:', error);
             throw new Error('Failed to initialize Apple Music');
+        });
+
+        return this.initializationPromise;
+    }
+
+    private async waitForMusicKit(timeoutMs: number = 10000): Promise<void> {
+        if (typeof window === 'undefined') {
+            throw new Error('MusicKit is only available in the browser');
+        }
+
+        if (window.MusicKit) return;
+
+        await this.withTimeout(
+            new Promise<void>((resolve) => {
+                window.addEventListener('musickitloaded', () => resolve(), { once: true });
+            }),
+            timeoutMs,
+            'MusicKit script did not load'
+        );
+
+        if (!window.MusicKit) {
+            throw new Error('MusicKit script loaded but window.MusicKit is unavailable');
+        }
+    }
+
+    private async withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+        let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+        try {
+            return await Promise.race([
+                promise,
+                new Promise<T>((_, reject) => {
+                    timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs);
+                }),
+            ]);
+        } finally {
+            if (timeoutId) clearTimeout(timeoutId);
         }
     }
 
@@ -195,8 +286,23 @@ export class AppleMusicService {
         }
 
         try {
-            const userToken = await this.musicKit.authorize();
-            console.log('[AppleMusic] authorize() resolved. User token present:', !!userToken);
+            if (this.musicKit.isAuthorized && this.musicKit.musicUserToken) {
+                console.log('[AppleMusic] already authorized. User token present: true');
+                return;
+            }
+
+            console.log('[AppleMusic] starting authorize()');
+            const userToken = await this.withTimeout(
+                this.musicKit.authorize(),
+                60000,
+                'Apple Music authorization timed out. Check for an Apple sign-in popup or pop-up blocker.'
+            );
+            const token = userToken || this.musicKit.musicUserToken;
+            console.log('[AppleMusic] authorize() resolved. User token present:', !!token);
+
+            if (!token) {
+                throw new Error('Apple Music did not return a user token');
+            }
         } catch (error: any) {
             console.error('[AppleMusic] authorize() failed:', {
                 message: error?.message,
@@ -208,7 +314,7 @@ export class AppleMusicService {
             throw new Error(
                 error?.errorCode === 'USER_AUTH_CANCELLED'
                     ? 'You cancelled the Apple Music sign-in'
-                    : 'Failed to authorize with Apple Music'
+                    : error?.message || 'Failed to authorize with Apple Music'
             );
         }
     }
