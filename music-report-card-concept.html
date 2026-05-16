@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SwitchTape — Music Report Card</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    :root {
+      --color-red: #ff0000;
+      --color-black: #000000;
+      --color-white: #ffffff;
+      --color-grey: #666666;
+      --color-light-grey: #e5e5e5;
+      --nav-height: 64px;
+      --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--color-white);
+      color: var(--color-black);
+      font-family: var(--font-family);
+    }
+
+    /* NAV */
+    .navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: var(--nav-height);
+      background: var(--color-white);
+      border-bottom: 1px solid var(--color-black);
+      z-index: 1000;
+    }
+    .nav-content {
+      max-width: 1200px;
+      height: 100%;
+      margin: 0 auto;
+      padding: 0 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .nav-logo {
+      color: var(--color-red);
+      font-size: 1.5rem;
+      font-weight: bold;
+      text-decoration: none;
+      letter-spacing: 0.05em;
+    }
+    .nav-links { display: flex; gap: 2rem; }
+    .nav-links a {
+      color: var(--color-black);
+      text-decoration: none;
+      text-transform: uppercase;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+    .nav-links a:hover, .nav-links a.active { color: var(--color-red); }
+
+    /* LAYOUT */
+    .app-wrapper {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding-top: var(--nav-height);
+    }
+    main {
+      flex: 1;
+      width: 100%;
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 2rem 1rem 4rem;
+    }
+
+    /* HEADER */
+    .report-header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+    .report-header h1 {
+      font-size: 2.5rem;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      margin-bottom: 0.5rem;
+    }
+    .report-header .subtitle {
+      font-size: 0.875rem;
+      color: var(--color-grey);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .report-header .subtitle i {
+      color: #1DB954;
+      margin-right: 0.25rem;
+    }
+
+    /* CARD BASE */
+    .card {
+      border: 1px solid var(--color-black);
+      padding: 2rem;
+      margin-bottom: 1.5rem;
+    }
+    .card-label {
+      font-size: 0.6875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--color-grey);
+      margin-bottom: 1rem;
+      font-weight: 500;
+    }
+
+    /* TYPE CARD */
+    .type-card {
+      text-align: center;
+      padding: 3rem 2rem;
+    }
+    .type-code {
+      font-size: 4rem;
+      font-weight: bold;
+      letter-spacing: 0.15em;
+      line-height: 1;
+      margin-bottom: 0.25rem;
+    }
+    .type-code .separator {
+      color: var(--color-red);
+      margin: 0 0.25rem;
+    }
+    .type-name {
+      font-size: 1.25rem;
+      text-transform: uppercase;
+      font-weight: bold;
+      letter-spacing: 0.1em;
+      margin-bottom: 1.25rem;
+    }
+    .type-tagline {
+      font-size: 0.9375rem;
+      color: var(--color-grey);
+      font-style: italic;
+      max-width: 480px;
+      margin: 0 auto;
+      line-height: 1.5;
+    }
+
+    /* STATS GRID */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0;
+    }
+    .stat-cell {
+      border: 1px solid var(--color-black);
+      padding: 1.5rem 1rem;
+      text-align: center;
+      margin-top: -1px;
+      margin-left: -1px;
+    }
+    .stat-value {
+      font-size: 2rem;
+      font-weight: bold;
+      line-height: 1;
+      margin-bottom: 0.25rem;
+    }
+    .stat-value.red { color: var(--color-red); }
+    .stat-label {
+      font-size: 0.6875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--color-grey);
+      font-weight: 500;
+    }
+
+    /* GENRE DNA */
+    .genre-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    .genre-row:last-child { margin-bottom: 0; }
+    .genre-label {
+      width: 140px;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+    .genre-bar-track {
+      flex: 1;
+      height: 24px;
+      background: var(--color-light-grey);
+      position: relative;
+    }
+    .genre-bar-fill {
+      height: 100%;
+      background: var(--color-black);
+      transition: width 1s ease;
+    }
+    .genre-bar-fill.accent { background: var(--color-red); }
+    .genre-pct {
+      width: 48px;
+      text-align: right;
+      font-size: 0.8125rem;
+      font-weight: bold;
+      flex-shrink: 0;
+      padding-left: 0.75rem;
+    }
+
+    /* ERA MAP */
+    .era-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+    .era-row:last-child { margin-bottom: 0; }
+    .era-label {
+      width: 48px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      text-transform: uppercase;
+      flex-shrink: 0;
+      font-family: monospace;
+    }
+    .era-bar-track {
+      flex: 1;
+      height: 16px;
+      background: var(--color-light-grey);
+    }
+    .era-bar-fill {
+      height: 100%;
+      background: var(--color-black);
+    }
+    .era-bar-fill.highlight { background: var(--color-red); }
+    .era-pct {
+      width: 40px;
+      text-align: right;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--color-grey);
+      padding-left: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    /* VIBE TAGS */
+    .vibe-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .vibe-tag {
+      border: 1px solid var(--color-black);
+      padding: 0.4rem 0.75rem;
+      font-size: 0.75rem;
+      text-transform: lowercase;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+    }
+    .vibe-tag.highlight {
+      background: var(--color-black);
+      color: var(--color-white);
+    }
+    .vibe-tag.red {
+      background: var(--color-red);
+      color: var(--color-white);
+      border-color: var(--color-red);
+    }
+
+    /* TOP ARTISTS */
+    .artist-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+    }
+    .artist-cell {
+      border: 1px solid var(--color-black);
+      padding: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: -1px;
+      margin-left: -1px;
+    }
+    .artist-name {
+      font-size: 0.875rem;
+      font-weight: 500;
+      text-transform: uppercase;
+    }
+    .artist-count {
+      font-size: 0.75rem;
+      color: var(--color-grey);
+      font-weight: 500;
+    }
+    .artist-cell.top {
+      background: var(--color-black);
+      color: var(--color-white);
+    }
+    .artist-cell.top .artist-count { color: var(--color-red); }
+
+    /* DEEP CUT ANALYSIS */
+    .analysis-text {
+      font-size: 0.9375rem;
+      line-height: 1.7;
+      color: #333;
+    }
+    .analysis-text strong {
+      color: var(--color-black);
+    }
+    .analysis-highlight {
+      display: inline;
+      background: var(--color-red);
+      color: var(--color-white);
+      padding: 0 0.25rem;
+      font-weight: 500;
+    }
+
+    /* TRAITS */
+    .trait-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--color-light-grey);
+    }
+    .trait-row:last-child { border-bottom: none; }
+    .trait-label-left, .trait-label-right {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      font-weight: 500;
+      color: var(--color-grey);
+      width: 100px;
+    }
+    .trait-label-right { text-align: right; }
+    .trait-bar-track {
+      flex: 1;
+      height: 8px;
+      background: var(--color-light-grey);
+      margin: 0 1rem;
+      position: relative;
+    }
+    .trait-bar-fill {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      background: var(--color-black);
+    }
+    .trait-bar-fill.red { background: var(--color-red); }
+
+    /* CTA */
+    .cta-section {
+      display: flex;
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+    .btn {
+      flex: 1;
+      padding: 0.875rem;
+      text-align: center;
+      text-transform: uppercase;
+      font-size: 0.875rem;
+      font-weight: 500;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      font-family: var(--font-family);
+      letter-spacing: 0.05em;
+    }
+    .btn-primary {
+      background: var(--color-red);
+      color: var(--color-white);
+    }
+    .btn-primary:hover { background: #cc0000; }
+    .btn-secondary {
+      background: var(--color-white);
+      color: var(--color-black);
+      border: 1px solid var(--color-black);
+    }
+    .btn-secondary:hover { background: #f5f5f5; }
+
+    /* DIVIDER */
+    .section-divider {
+      width: 100%;
+      height: 1px;
+      background: var(--color-black);
+      margin: 2rem 0;
+    }
+
+    /* FOOTER */
+    .footer {
+      width: 100%;
+      background-color: #ffffff;
+      border-top: 1px solid #e5e5e5;
+      padding: 0.75rem 0;
+      margin-top: auto;
+    }
+    .footer-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .footer-links { display: flex; align-items: center; gap: 0.75rem; }
+    .footer-links a { color: #666; text-decoration: none; font-size: 0.8rem; }
+    .footer-links a:hover { color: #000; }
+    .footer .divider { color: #ccc; font-size: 0.8rem; }
+    .footer .copyright { color: #999; font-size: 0.8rem; margin: 0; }
+
+    /* RESPONSIVE */
+    @media (max-width: 640px) {
+      .report-header h1 { font-size: 1.75rem; }
+      .type-code { font-size: 2.5rem; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .genre-label { width: 100px; font-size: 0.75rem; }
+      .artist-grid { grid-template-columns: 1fr; }
+      .cta-section { flex-direction: column; }
+      .trait-label-left, .trait-label-right { width: 70px; font-size: 0.6875rem; }
+      .footer-content { flex-direction: column; gap: 0.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav class="navbar">
+    <div class="nav-content">
+      <a href="/" class="nav-logo">SWITCHTAPE</a>
+      <div class="nav-links">
+        <a href="/load-playlist">START</a>
+        <a href="/report" class="active">REPORT CARD</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="app-wrapper">
+    <main>
+
+      <!-- HEADER -->
+      <div class="report-header">
+        <h1>Music Report Card</h1>
+        <div class="subtitle">
+          <i class="fa-brands fa-spotify"></i> Based on your all-time top songs
+        </div>
+      </div>
+
+      <!-- YOUR TYPE -->
+      <div class="card type-card">
+        <div class="card-label">Your Listener Type</div>
+        <div class="type-code">
+          N<span class="separator">/</span>R
+          &nbsp;
+          P<span class="separator">/</span>E
+        </div>
+        <div class="type-name">The Nostalgic Rebel</div>
+        <div class="type-tagline">
+          You grew up on pop-punk and never left, but your hip-hop side keeps things interesting. You're the person at the party who controls the aux and nobody complains.
+        </div>
+      </div>
+
+      <!-- STATS -->
+      <div class="card" style="padding: 0; border: none;">
+        <div class="card-label" style="padding: 0 0 0.75rem 0;">Key Metrics</div>
+        <div class="stats-grid">
+          <div class="stat-cell">
+            <div class="stat-value">92</div>
+            <div class="stat-label">Nostalgia</div>
+          </div>
+          <div class="stat-cell">
+            <div class="stat-value red">78</div>
+            <div class="stat-label">Energy</div>
+          </div>
+          <div class="stat-cell">
+            <div class="stat-value">83</div>
+            <div class="stat-label">Depth</div>
+          </div>
+          <div class="stat-cell">
+            <div class="stat-value">71</div>
+            <div class="stat-label">Range</div>
+          </div>
+          <div class="stat-cell">
+            <div class="stat-value red">45</div>
+            <div class="stat-label">Mainstream</div>
+          </div>
+          <div class="stat-cell">
+            <div class="stat-value">88</div>
+            <div class="stat-label">Replay</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-divider"></div>
+
+      <!-- GENRE DNA -->
+      <div class="card">
+        <div class="card-label">Genre DNA</div>
+        <div class="genre-row">
+          <div class="genre-label">Pop-Punk / Emo</div>
+          <div class="genre-bar-track">
+            <div class="genre-bar-fill accent" style="width: 40%;"></div>
+          </div>
+          <div class="genre-pct">40%</div>
+        </div>
+        <div class="genre-row">
+          <div class="genre-label">Hip-Hop / Rap</div>
+          <div class="genre-bar-track">
+            <div class="genre-bar-fill" style="width: 35%;"></div>
+          </div>
+          <div class="genre-pct">35%</div>
+        </div>
+        <div class="genre-row">
+          <div class="genre-label">Alternative</div>
+          <div class="genre-bar-track">
+            <div class="genre-bar-fill" style="width: 15%;"></div>
+          </div>
+          <div class="genre-pct">15%</div>
+        </div>
+        <div class="genre-row">
+          <div class="genre-label">New Wave</div>
+          <div class="genre-bar-track">
+            <div class="genre-bar-fill" style="width: 5%;"></div>
+          </div>
+          <div class="genre-pct">5%</div>
+        </div>
+        <div class="genre-row">
+          <div class="genre-label">Indie / Other</div>
+          <div class="genre-bar-track">
+            <div class="genre-bar-fill" style="width: 5%;"></div>
+          </div>
+          <div class="genre-pct">5%</div>
+        </div>
+      </div>
+
+      <!-- ERA MAP -->
+      <div class="card">
+        <div class="card-label">Era Map &mdash; When Your Music Lives</div>
+        <div class="era-row">
+          <div class="era-label">'80s</div>
+          <div class="era-bar-track">
+            <div class="era-bar-fill" style="width: 5%;"></div>
+          </div>
+          <div class="era-pct">5%</div>
+        </div>
+        <div class="era-row">
+          <div class="era-label">'90s</div>
+          <div class="era-bar-track">
+            <div class="era-bar-fill" style="width: 10%;"></div>
+          </div>
+          <div class="era-pct">10%</div>
+        </div>
+        <div class="era-row">
+          <div class="era-label">'00s</div>
+          <div class="era-bar-track">
+            <div class="era-bar-fill highlight" style="width: 40%;"></div>
+          </div>
+          <div class="era-pct">40%</div>
+        </div>
+        <div class="era-row">
+          <div class="era-label">'10s</div>
+          <div class="era-bar-track">
+            <div class="era-bar-fill" style="width: 25%;"></div>
+          </div>
+          <div class="era-pct">25%</div>
+        </div>
+        <div class="era-row">
+          <div class="era-label">'20s</div>
+          <div class="era-bar-track">
+            <div class="era-bar-fill" style="width: 20%;"></div>
+          </div>
+          <div class="era-pct">20%</div>
+        </div>
+      </div>
+
+      <!-- PERSONALITY SPECTRUM -->
+      <div class="card">
+        <div class="card-label">Personality Spectrum</div>
+        <div class="trait-row">
+          <div class="trait-label-left">Chill</div>
+          <div class="trait-bar-track">
+            <div class="trait-bar-fill red" style="width: 72%;"></div>
+          </div>
+          <div class="trait-label-right">Chaotic</div>
+        </div>
+        <div class="trait-row">
+          <div class="trait-label-left">Classic</div>
+          <div class="trait-bar-track">
+            <div class="trait-bar-fill" style="width: 65%;"></div>
+          </div>
+          <div class="trait-label-right">Modern</div>
+        </div>
+        <div class="trait-row">
+          <div class="trait-label-left">Introspective</div>
+          <div class="trait-bar-track">
+            <div class="trait-bar-fill" style="width: 58%;"></div>
+          </div>
+          <div class="trait-label-right">Anthemic</div>
+        </div>
+        <div class="trait-row">
+          <div class="trait-label-left">Underground</div>
+          <div class="trait-bar-track">
+            <div class="trait-bar-fill red" style="width: 45%;"></div>
+          </div>
+          <div class="trait-label-right">Mainstream</div>
+        </div>
+        <div class="trait-row">
+          <div class="trait-label-left">Solo Listener</div>
+          <div class="trait-bar-track">
+            <div class="trait-bar-fill" style="width: 68%;"></div>
+          </div>
+          <div class="trait-label-right">Crowd Energy</div>
+        </div>
+      </div>
+
+      <!-- VIBE CHECK -->
+      <div class="card">
+        <div class="card-label">Vibe Check</div>
+        <div class="vibe-tags">
+          <span class="vibe-tag red">#skateparknostalgia</span>
+          <span class="vibe-tag highlight">#windowsdown</span>
+          <span class="vibe-tag">#midnightdrives</span>
+          <span class="vibe-tag">#2007forever</span>
+          <span class="vibe-tag highlight">#moshenthencry</span>
+          <span class="vibe-tag">#suburbanescape</span>
+          <span class="vibe-tag">#auxcordking</span>
+          <span class="vibe-tag red">#punkmeetsrap</span>
+          <span class="vibe-tag">#summerheat</span>
+          <span class="vibe-tag">#latenightcudi</span>
+        </div>
+      </div>
+
+      <!-- TOP ARTISTS -->
+      <div class="card" style="padding: 0; border: none;">
+        <div class="card-label" style="padding: 0 0 0.75rem 0;">Top Artists Detected</div>
+        <div class="artist-grid">
+          <div class="artist-cell top">
+            <span class="artist-name">blink-182</span>
+            <span class="artist-count">3 tracks</span>
+          </div>
+          <div class="artist-cell top">
+            <span class="artist-name">Mac Miller</span>
+            <span class="artist-count">2 tracks</span>
+          </div>
+          <div class="artist-cell top">
+            <span class="artist-name">Kid Cudi</span>
+            <span class="artist-count">2 tracks</span>
+          </div>
+          <div class="artist-cell">
+            <span class="artist-name">Fall Out Boy</span>
+            <span class="artist-count">1 track</span>
+          </div>
+          <div class="artist-cell">
+            <span class="artist-name">The Killers</span>
+            <span class="artist-count">1 track</span>
+          </div>
+          <div class="artist-cell">
+            <span class="artist-name">Sum 41</span>
+            <span class="artist-count">1 track</span>
+          </div>
+          <div class="artist-cell">
+            <span class="artist-name">Weezer</span>
+            <span class="artist-count">1 track</span>
+          </div>
+          <div class="artist-cell">
+            <span class="artist-name">Tears For Fears</span>
+            <span class="artist-count">1 track</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-divider"></div>
+
+      <!-- DEEP CUT ANALYSIS -->
+      <div class="card">
+        <div class="card-label">The Deep Cut &mdash; What Your Music Says About You</div>
+        <p class="analysis-text">
+          Your library reads like a <strong>coming-of-age soundtrack that never ended</strong>. Three blink-182 tracks in your top 20 isn't casual listening &mdash; that's identity. You probably learned guitar to one of those songs and still think <em>Enema of the State</em> is a perfect album.
+        </p>
+        <br />
+        <p class="analysis-text">
+          But here's where it gets interesting: you pivot from pop-punk straight into <strong>Mac Miller and Kid Cudi</strong> without blinking. That crossover isn't random. Both artists share the same DNA as the punk side of your library &mdash; <span class="analysis-highlight">raw honesty wrapped in hooks</span>. You don't pick music by genre. You pick it by feeling.
+        </p>
+        <br />
+        <p class="analysis-text">
+          The Tears For Fears deep cut and Biggie remaster tell the rest of the story: you respect the lineage. You know where your music came from. You're not algorithmically driven &mdash; <strong>you chose every one of these songs on purpose</strong>.
+        </p>
+        <br />
+        <p class="analysis-text">
+          Bottom line: you're the person who made the group playlist in high school and it actually slapped. <span class="analysis-highlight">Your taste peaked early and aged well.</span>
+        </p>
+      </div>
+
+      <!-- COMPATIBLE TYPES -->
+      <div class="card">
+        <div class="card-label">Listener Compatibility</div>
+        <p class="analysis-text" style="margin-bottom: 1rem;">
+          <strong>Most compatible with:</strong> The Emo Archivist, The Crate Digger
+        </p>
+        <p class="analysis-text" style="margin-bottom: 1rem;">
+          <strong>Least compatible with:</strong> The Algorithm Surfer, The Top 40 Purist
+        </p>
+        <p class="analysis-text">
+          <strong>Celebrity match:</strong> Travis Barker's Spotify would look a lot like yours.
+        </p>
+      </div>
+
+      <!-- CTA -->
+      <div class="cta-section">
+        <button class="btn btn-primary">
+          <i class="fa-solid fa-share-nodes"></i>&nbsp; Share Report
+        </button>
+        <button class="btn btn-secondary">
+          <i class="fa-solid fa-arrows-rotate"></i>&nbsp; Regenerate
+        </button>
+      </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+      <div class="footer-content">
+        <nav class="footer-links">
+          <a href="/privacy">Privacy Policy</a>
+          <span class="divider">|</span>
+          <a href="/terms">Terms of Service</a>
+          <span class="divider">|</span>
+          <a href="mailto:Justin@crispcode.io">Contact</a>
+        </nav>
+        <p class="copyright">&copy; 2026 Switchtape. All rights reserved.</p>
+      </div>
+    </footer>
+  </div>
+
+</body>
+</html>

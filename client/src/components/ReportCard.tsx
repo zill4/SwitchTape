@@ -1,27 +1,36 @@
 import { h } from 'preact';
 import { useState, useEffect, useRef } from 'preact/hooks';
 import { SpotifyService } from '../services/spotify';
+import { AppleMusicService } from '../services/AppleMusic';
 import { MusicAnalyzer } from '../services/MusicAnalyzer';
+import { AppleMusicAnalyzer } from '../services/AppleMusicAnalyzer';
 import type { MusicReportCard as ReportCardType } from '../models/ReportCard';
 import '../styles/ReportCard.css';
 
 const CACHE_KEY = 'music_report_card';
+const SOURCE_KEY = 'music_report_source';
+
+type Source = 'spotify' | 'apple';
 
 export function ReportCard() {
     const [phase, setPhase] = useState<'connect' | 'loading' | 'report' | 'error'>('connect');
     const [report, setReport] = useState<ReportCardType | null>(null);
+    const [source, setSource] = useState<Source | null>(null);
     const [loadingMessage, setLoadingMessage] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
     const reportRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const cached = localStorage.getItem(CACHE_KEY);
+        const cachedSource = localStorage.getItem(SOURCE_KEY) as Source | null;
         if (cached) {
             try {
                 setReport(JSON.parse(cached));
+                if (cachedSource) setSource(cachedSource);
                 setPhase('report');
             } catch {
                 localStorage.removeItem(CACHE_KEY);
+                localStorage.removeItem(SOURCE_KEY);
             }
         }
     }, []);
@@ -32,7 +41,8 @@ export function ReportCard() {
         return token && expiry && Date.now() < parseInt(expiry);
     };
 
-    const generateReport = async () => {
+    const generateSpotifyReport = async () => {
+        setSource('spotify');
         setPhase('loading');
 
         try {
@@ -56,32 +66,88 @@ export function ReportCard() {
             setLoadingMessage('Analyzing your music taste...');
             const analysisInput = MusicAnalyzer.analyze(topTracks, topArtists);
 
-            setLoadingMessage('Generating your report card...');
-            const response = await fetch('/api/generate-report', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ analysisInput }),
-            });
-            if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.error || 'Failed to generate report');
-            }
-            const { report: reportData } = await response.json() as { report: ReportCardType };
-
-            localStorage.setItem(CACHE_KEY, JSON.stringify(reportData));
-            setReport(reportData);
-            setPhase('report');
+            await sendReportRequest(analysisInput, 'spotify');
         } catch (err: any) {
-            console.error('Report generation failed:', err);
+            console.error('Spotify report generation failed:', err);
             setErrorMessage(err.message || 'Something went wrong. Please try again.');
             setPhase('error');
         }
     };
 
+    const generateAppleReport = async () => {
+        setSource('apple');
+        setPhase('loading');
+
+        try {
+            const apple = AppleMusicService.getInstance();
+            setLoadingMessage('Connecting to Apple Music...');
+            await apple.authorize();
+
+            setLoadingMessage('Fetching your heavy rotation...');
+            const heavyRotation = await apple.getHeavyRotation(10);
+
+            setLoadingMessage('Fetching recently played tracks...');
+            const recentlyPlayed = await apple.getRecentlyPlayedTracks(30);
+
+            setLoadingMessage('Pulling Apple\'s recommendations for you...');
+            let recommendations: Awaited<ReturnType<typeof apple.getRecommendations>> = [];
+            try {
+                recommendations = await apple.getRecommendations();
+            } catch (e) {
+                // Recommendations are nice-to-have; continue if they fail
+                console.warn('Apple recommendations unavailable:', e);
+            }
+
+            if (heavyRotation.length === 0 && recentlyPlayed.length < 5) {
+                setErrorMessage('Not enough listening history yet. Play some music on Apple Music and try again.');
+                setPhase('error');
+                return;
+            }
+
+            setLoadingMessage('Analyzing your music taste...');
+            const analysisInput = AppleMusicAnalyzer.analyze(
+                heavyRotation,
+                recentlyPlayed,
+                recommendations
+            );
+
+            await sendReportRequest(analysisInput, 'apple');
+        } catch (err: any) {
+            console.error('Apple Music report generation failed:', err);
+            setErrorMessage(err.message || 'Something went wrong. Please try again.');
+            setPhase('error');
+        }
+    };
+
+    const sendReportRequest = async (analysisInput: unknown, src: Source) => {
+        setLoadingMessage('Generating your report card...');
+        const response = await fetch('/api/generate-report', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ analysisInput }),
+        });
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.error || 'Failed to generate report');
+        }
+        const { report: reportData } = (await response.json()) as { report: ReportCardType };
+
+        localStorage.setItem(CACHE_KEY, JSON.stringify(reportData));
+        localStorage.setItem(SOURCE_KEY, src);
+        setReport(reportData);
+        setPhase('report');
+    };
+
     const handleRegenerate = () => {
         localStorage.removeItem(CACHE_KEY);
         setReport(null);
-        generateReport();
+        if (source === 'apple') generateAppleReport();
+        else generateSpotifyReport();
+    };
+
+    const handleRetry = () => {
+        if (source === 'apple') generateAppleReport();
+        else generateSpotifyReport();
     };
 
     const handleShare = async () => {
@@ -127,19 +193,28 @@ export function ReportCard() {
                 <div class="report-header">
                     <h1>Music Report Card</h1>
                     <div class="report-subtitle">
-                        <i class="fa-brands fa-spotify"></i> Powered by your Spotify listening history
+                        Powered by your listening history
                     </div>
                 </div>
                 <div class="report-card connect-card">
                     <h2>Discover Your Music DNA</h2>
                     <p>
-                        Connect your Spotify account and we'll analyze your top tracks
-                        and artists to generate a personalized music personality report.
+                        Connect your music account and we'll analyze your listening to
+                        generate a personalized music personality report.
                     </p>
-                    <button class="connect-btn" onClick={generateReport}>
-                        <i class="fa-brands fa-spotify"></i>
-                        Connect Spotify
-                    </button>
+                    <div class="connect-btn-group">
+                        <button class="connect-btn" onClick={generateSpotifyReport}>
+                            <i class="fa-brands fa-spotify"></i>
+                            Connect Spotify
+                        </button>
+                        <button class="connect-btn apple" onClick={generateAppleReport}>
+                            <i class="fa-brands fa-apple"></i>
+                            Connect Apple Music
+                        </button>
+                    </div>
+                    <p class="connect-fineprint">
+                        Spotify uses all-time top tracks; Apple uses heavy rotation + recently played.
+                    </p>
                 </div>
             </div>
         );
@@ -167,7 +242,7 @@ export function ReportCard() {
                 </div>
                 <div class="report-card error-card">
                     <p>{errorMessage}</p>
-                    <button class="retry-btn" onClick={generateReport}>
+                    <button class="retry-btn" onClick={handleRetry}>
                         Try Again
                     </button>
                 </div>
@@ -184,7 +259,15 @@ export function ReportCard() {
             <div class="report-header">
                 <h1>Music Report Card</h1>
                 <div class="report-subtitle">
-                    <i class="fa-brands fa-spotify"></i> Based on your all-time top songs
+                    {source === 'apple' ? (
+                        <>
+                            <i class="fa-brands fa-apple"></i> Based on your heavy rotation & recent plays
+                        </>
+                    ) : (
+                        <>
+                            <i class="fa-brands fa-spotify"></i> Based on your all-time top songs
+                        </>
+                    )}
                 </div>
             </div>
 

@@ -6,7 +6,16 @@ export const POST: APIRoute = async ({ request }) => {
     try {
         const { analysisInput } = await request.json();
 
-        if (!analysisInput || !analysisInput.trackCount || analysisInput.trackCount < 5) {
+        // Apple may have a thinner trackCount but still useful heavyRotation data.
+        // Validate by either trackCount (Spotify) or heavyRotation length (Apple).
+        const isApple = analysisInput?.source === 'apple';
+        const hasEnoughData = isApple
+            ? (analysisInput?.heavyRotation?.length || 0) +
+                  (analysisInput?.recentlyPlayedCount || 0) >=
+              5
+            : (analysisInput?.trackCount || 0) >= 5;
+
+        if (!analysisInput || !hasEnoughData) {
             return new Response(JSON.stringify({ error: 'Not enough listening data' }), {
                 status: 400,
                 headers: { 'Content-Type': 'application/json' },
@@ -21,7 +30,31 @@ export const POST: APIRoute = async ({ request }) => {
             });
         }
 
+        const sourceFraming = isApple
+            ? `DATA SOURCE — APPLE MUSIC (calibrate accordingly):
+This user's data is composed of three signals, NOT an all-time top list:
+  1. Heavy rotation: their most-played albums/playlists (strongest weight, ~3x)
+  2. Recently played tracks: a ~30-track recency snapshot (moderate weight)
+  3. Apple's personal recommendations: what Apple's algorithm suggests for them (adjacent-taste hint, NOT their own listening)
+
+Weight the personality analysis on heavy rotation + recently played. Treat appleRecommendations
+as a hint about adjacent taste — useful for recommending NEW artists they might like, but do NOT
+attribute the recommendations themselves to the user's personality.
+
+Apple Music does not expose track popularity scores, so do NOT reference popularity distribution
+or "mainstream" calibration with high confidence — soften that signal in the bigFive and metrics.
+
+The Apple listening sample is smaller than a Spotify all-time top list. Slightly soften your
+confidence in the personality analysis to match the data quality.`
+            : `DATA SOURCE — SPOTIFY (high-quality signal):
+This data is the user's Spotify long-term top 50 tracks and top 50 artists, weighted by
+total play count across their entire listening history. It's a very strong signal of
+long-term taste. Track popularity scores are available, so calibrate the "mainstream" and
+related metrics with confidence.`;
+
         const prompt = `You are a music personality analyst for an app called SwitchTape. You ground your analysis in established psychological frameworks — primarily the Big Five (OCEAN) model from personality psychology, supplemented with familiar cultural frameworks (MBTI, color theory, astrology) as accessible overlays.
+
+${sourceFraming}
 
 Analyze the following music listening data and generate a personality report:
 ${JSON.stringify(analysisInput, null, 2)}
@@ -84,7 +117,7 @@ Generate a JSON object matching this EXACT schema:
   ] (top 8 artists by track count from the data),
   "recommendedArtists": [
     { "name": "Artist Name", "reason": "1 sentence on why this fits their taste — reference a specific pattern in their data" }
-  ] (exactly 8 artist recommendations. Choose real artists that complement their existing taste — adjacent genres, similar era/mood, or natural next steps. AVOID artists already in their topArtists.),
+  ] (exactly 8 artist recommendations. Choose real artists that complement their existing taste — adjacent genres, similar era/mood, or natural next steps. AVOID artists already in their topArtists. For Apple Music users, you may use their appleRecommendations field as a hint, but extract underlying ARTIST names and pick real, well-known artists — do NOT just echo Apple's playlist/album titles.),
   "deepCutAnalysis": [
     "paragraph 1",
     "paragraph 2",

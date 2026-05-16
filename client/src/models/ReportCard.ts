@@ -19,24 +19,44 @@ export interface SpotifyTopArtist {
     images: Array<{ url: string; width: number; height: number }>;
 }
 
-export interface MusicAnalysisInput {
+interface BaseAnalysisInput {
     genreBreakdown: Record<string, number>;
     eraMap: Record<string, number>;
-    averagePopularity: number;
     topArtists: Array<{ name: string; count: number; genres: string[] }>;
     trackCount: number;
     uniqueArtistCount: number;
     uniqueGenreCount: number;
+    oldestTrackYear: number;
+    newestTrackYear: number;
+    decadeSpan: number;
+}
+
+export interface SpotifyAnalysisInput extends BaseAnalysisInput {
+    source: 'spotify';
+    /** "long_term" top tracks/artists from Spotify — strong all-time taste signal */
+    signalNote: string;
+    averagePopularity: number;
     popularityDistribution: {
         underground: number;
         indie: number;
         mainstream: number;
         mega: number;
     };
-    oldestTrackYear: number;
-    newestTrackYear: number;
-    decadeSpan: number;
 }
+
+export interface AppleAnalysisInput extends BaseAnalysisInput {
+    source: 'apple';
+    /** Composite signal: heavy rotation + recently played + Apple's recommendations */
+    signalNote: string;
+    /** Artists/albums Apple's algorithm is recommending — proxy for adjacent taste */
+    appleRecommendations: Array<{ name: string; artistName?: string; type: string }>;
+    /** Items in heavy rotation — most-played albums/playlists */
+    heavyRotation: Array<{ name: string; artistName?: string; type: string }>;
+    /** Recent listening sample size */
+    recentlyPlayedCount: number;
+}
+
+export type MusicAnalysisInput = SpotifyAnalysisInput | AppleAnalysisInput;
 
 export interface MusicReportCard {
     listenerType: {

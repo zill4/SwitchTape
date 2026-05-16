@@ -328,4 +328,97 @@ export class AppleMusicService {
     private getStorefront(): string {
         return this.musicKit.storefrontId || 'us';
     }
+
+    // ─── Report Card data sources ─────────────────────────────────────────
+
+    /**
+     * Heavy rotation: most-played albums, playlists, stations.
+     * Returns up to 10 items by default.
+     */
+    async getHeavyRotation(limit: number = 10): Promise<AppleHeavyRotationItem[]> {
+        const response = await this.makeRequest(
+            `/me/history/heavy-rotation?limit=${limit}`
+        );
+        return (response?.data || []).map((item: any) => ({
+            id: item.id,
+            type: item.type,
+            name: item.attributes?.name || '',
+            artistName: item.attributes?.artistName || '',
+            genreNames: item.attributes?.genreNames || [],
+            releaseDate: item.attributes?.releaseDate || '',
+        }));
+    }
+
+    /**
+     * Recently played tracks (last ~30).
+     */
+    async getRecentlyPlayedTracks(limit: number = 30): Promise<AppleRecentTrack[]> {
+        const response = await this.makeRequest(
+            `/me/recent/played/tracks?limit=${limit}`
+        );
+        return (response?.data || [])
+            .filter((item: any) => item.type === 'songs')
+            .map((item: any) => ({
+                id: item.id,
+                name: item.attributes?.name || '',
+                artistName: item.attributes?.artistName || '',
+                albumName: item.attributes?.albumName || '',
+                genreNames: item.attributes?.genreNames || [],
+                releaseDate: item.attributes?.releaseDate || '',
+                durationInMillis: item.attributes?.durationInMillis || 0,
+            }));
+    }
+
+    /**
+     * Apple's personal recommendations — useful as an "adjacent taste" signal.
+     * Flattens recommendation groups into their content items.
+     */
+    async getRecommendations(): Promise<AppleRecommendationItem[]> {
+        const response = await this.makeRequest(`/me/recommendations`);
+        const items: AppleRecommendationItem[] = [];
+
+        for (const rec of response?.data || []) {
+            const contents = rec.relationships?.contents?.data || [];
+            for (const item of contents) {
+                if (item?.attributes?.name) {
+                    items.push({
+                        id: item.id,
+                        type: item.type,
+                        name: item.attributes.name,
+                        artistName: item.attributes?.artistName || '',
+                        genreNames: item.attributes?.genreNames || [],
+                    });
+                }
+            }
+        }
+
+        return items;
+    }
+}
+
+export interface AppleHeavyRotationItem {
+    id: string;
+    type: string;
+    name: string;
+    artistName: string;
+    genreNames: string[];
+    releaseDate: string;
+}
+
+export interface AppleRecentTrack {
+    id: string;
+    name: string;
+    artistName: string;
+    albumName: string;
+    genreNames: string[];
+    releaseDate: string;
+    durationInMillis: number;
+}
+
+export interface AppleRecommendationItem {
+    id: string;
+    type: string;
+    name: string;
+    artistName: string;
+    genreNames: string[];
 }

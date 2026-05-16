@@ -1,7 +1,7 @@
-import type { SpotifyTopTrack, SpotifyTopArtist, MusicAnalysisInput } from "../models/ReportCard";
+import type { SpotifyTopTrack, SpotifyTopArtist, SpotifyAnalysisInput } from "../models/ReportCard";
 
 export class MusicAnalyzer {
-    static analyze(topTracks: SpotifyTopTrack[], topArtists: SpotifyTopArtist[]): MusicAnalysisInput {
+    static analyze(topTracks: SpotifyTopTrack[], topArtists: SpotifyTopArtist[]): SpotifyAnalysisInput {
         const genreBreakdown = this.computeGenreBreakdown(topArtists);
         const eraMap = this.computeEraMap(topTracks);
         const averagePopularity = this.computeAveragePopularity(topTracks);
@@ -15,6 +15,8 @@ export class MusicAnalyzer {
         const allGenres = new Set(topArtists.flatMap(a => a.genres));
 
         return {
+            source: 'spotify',
+            signalNote: 'Spotify all-time top tracks and artists — a strong long-term taste signal weighted by total play count.',
             genreBreakdown,
             eraMap,
             averagePopularity,
