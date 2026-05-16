@@ -25,6 +25,10 @@ const { title } = Astro.props;
 		<meta http-equiv="X-Content-Type-Options" content="nosniff">
 		<meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
 		<meta http-equiv="Strict-Transport-Security" content="max-age=31536000; includeSubDomains">
+		<!-- MusicKit JS needs origin sent on cross-origin requests to play.itunes.apple.com.
+		     Browsers default to strict-origin-when-cross-origin which strips Referer enough
+		     to break MusicKit auth (403 on webPlayerLogout). Explicitly set to "origin". -->
+		<meta name="referrer" content="origin">
 		<script is:inline>
 			(function() {
 				try {

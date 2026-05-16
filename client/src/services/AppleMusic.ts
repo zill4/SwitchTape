@@ -179,12 +179,12 @@ export class AppleMusicService {
             await window.MusicKit.configure({
                 developerToken,
                 app: {
-                    name: 'Playlist Porter',
+                    name: 'SwitchTape',
                     build: '1.0.0'
                 }
             });
         } catch (error) {
-            console.error('Failed to configure MusicKit:', error);
+            console.error('[AppleMusic] configure() failed:', error);
             throw new Error('Failed to configure MusicKit');
         }
     }
@@ -195,10 +195,21 @@ export class AppleMusicService {
         }
 
         try {
-            await this.musicKit.authorize();
-        } catch (error) {
-            console.error('Failed to authorize with Apple Music:', error);
-            throw new Error('Failed to authorize with Apple Music');
+            const userToken = await this.musicKit.authorize();
+            console.log('[AppleMusic] authorize() resolved. User token present:', !!userToken);
+        } catch (error: any) {
+            console.error('[AppleMusic] authorize() failed:', {
+                message: error?.message,
+                name: error?.name,
+                errorCode: error?.errorCode,
+                description: error?.description,
+                full: error,
+            });
+            throw new Error(
+                error?.errorCode === 'USER_AUTH_CANCELLED'
+                    ? 'You cancelled the Apple Music sign-in'
+                    : 'Failed to authorize with Apple Music'
+            );
         }
     }
 
