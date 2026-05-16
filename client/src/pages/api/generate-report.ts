@@ -21,10 +21,18 @@ export const POST: APIRoute = async ({ request }) => {
             });
         }
 
-        const prompt = `You are a music personality analyst for an app called SwitchTape. Analyze the following music listening data and generate a personality report.
+        const prompt = `You are a music personality analyst for an app called SwitchTape. You ground your analysis in established psychological frameworks — primarily the Big Five (OCEAN) model from personality psychology, supplemented with familiar cultural frameworks (MBTI, color theory, astrology) as accessible overlays.
 
-Here is the user's music data:
+Analyze the following music listening data and generate a personality report:
 ${JSON.stringify(analysisInput, null, 2)}
+
+PSYCHOLOGY GROUNDING — how to derive Big Five from music data:
+- Openness: high if diverse genres, deep cuts, varied eras, low mainstream; low if narrow/safe taste
+- Conscientiousness: high if organized, consistent within genres; low if scattered
+- Extraversion: high if upbeat/dance/pop/party music; low if introspective/ambient/lo-fi/sad
+- Agreeableness: high if popular collaborative genres (pop, R&B, mainstream); low if abrasive/aggressive/avant-garde
+- Neuroticism: high if melancholic/intense/emotional; low if upbeat/stable mood music
+Use the music data signals (genres, popularity distribution, era spread, energy implied by genres) to assign scores honestly, not just for flattery. These are scientifically validated traits — calibrate carefully.
 
 Generate a JSON object matching this EXACT schema:
 {
@@ -32,13 +40,30 @@ Generate a JSON object matching this EXACT schema:
     "name": "The [Creative Name] (2-3 words max, e.g. The Nostalgic Rebel, The Crate Digger)",
     "tagline": "A witty one-liner about their music personality (under 30 words)"
   },
+  "bigFive": {
+    "openness": 0-100,
+    "conscientiousness": 0-100,
+    "extraversion": 0-100,
+    "agreeableness": 0-100,
+    "neuroticism": 0-100,
+    "summary": "2-3 sentences explaining how their music maps to these traits — reference specific genres/patterns. Stay grounded in real personality psychology, no flattery."
+  },
+  "mbtiVibe": {
+    "type": "4-letter MBTI code (e.g. INFP, ENTJ) that best matches their listening profile",
+    "description": "1-2 sentences on why this MBTI type matches their musical sensibility — explicitly note MBTI is a cultural framework, not scientifically rigorous like Big Five"
+  },
+  "colorAura": {
+    "name": "Evocative color name (e.g. Deep Indigo, Crimson Static, Sun-Bleached Gold)",
+    "hex": "#hexcode that visualizes this aura",
+    "meaning": "1-2 sentences on what this color signifies emotionally per color psychology and how it connects to their listening"
+  },
   "metrics": {
-    "nostalgia": 0-100 (how retro their taste skews),
-    "energy": 0-100 (how high-energy their music is),
-    "depth": 0-100 (how emotionally complex their choices are),
-    "range": 0-100 (how diverse across genres/eras),
-    "mainstream": 0-100 (how popular their picks are, derive from averagePopularity),
-    "replay": 0-100 (how likely they are to revisit the same songs)
+    "nostalgia": 0-100,
+    "energy": 0-100,
+    "depth": 0-100,
+    "range": 0-100,
+    "mainstream": 0-100,
+    "replay": 0-100
   },
   "genreDNA": [
     { "genre": "Genre Name", "percentage": number }
@@ -53,29 +78,38 @@ Generate a JSON object matching this EXACT schema:
     { "leftLabel": "UNDERGROUND", "rightLabel": "MAINSTREAM", "value": 0-100 },
     { "leftLabel": "SOLO LISTENER", "rightLabel": "CROWD ENERGY", "value": 0-100 }
   ],
-  "vibeTags": ["#lowercase-hashtag-vibes"] (exactly 10 hashtag mood tags, no spaces in tags, be creative and specific to their taste),
+  "vibeTags": ["#lowercase-hashtag-vibes"] (exactly 10 hashtag mood tags, no spaces in tags),
   "topArtists": [
     { "name": "Artist Name", "count": number }
   ] (top 8 artists by track count from the data),
+  "recommendedArtists": [
+    { "name": "Artist Name", "reason": "1 sentence on why this fits their taste — reference a specific pattern in their data" }
+  ] (exactly 8 artist recommendations. Choose real artists that complement their existing taste — adjacent genres, similar era/mood, or natural next steps. AVOID artists already in their topArtists.),
   "deepCutAnalysis": [
     "paragraph 1",
     "paragraph 2",
     "paragraph 3",
     "paragraph 4"
-  ] (4 paragraphs analyzing their personality through their music. Be witty, specific, reference actual artists/genres from their data. Write like a music journalist who knows their stuff. Each paragraph 2-3 sentences max.),
+  ] (4 paragraphs analyzing personality through music. Witty, specific, reference actual artists/genres from their data. Music-journalist voice. 2-3 sentences each.),
   "compatibility": {
     "mostCompatible": "The [Type Name] — brief description of who they'd vibe with",
     "leastCompatible": "The [Type Name] — brief description of who they'd clash with",
     "celebrityMatch": "[Celebrity Name]'s Spotify probably looks a lot like yours"
+  },
+  "cosmicVibe": {
+    "sign": "Astrological sign or archetype that best matches their listening energy (e.g. 'A Scorpio Moon listener' or 'Late-night Pisces energy')",
+    "reading": "2-3 sentences of playful astrological reading tied to their music. Keep it tongue-in-cheek — astrology is the fun overlay, not the serious analysis."
   }
 }
 
 Rules:
-- Be creative, witty, and personality-driven
-- Reference specific genres and patterns from the data
-- The listener type name should be creative and memorable (e.g. The Nostalgic Rebel, The Midnight Crate Digger)
-- Vibe tags should be lowercase hashtags with no spaces (use camelCase or dashes)
-- Deep cut analysis should feel like it was written by a music journalist`;
+- Big Five is the scientific anchor — calibrate scores honestly using the music data
+- MBTI is a cultural overlay, acknowledge its limits in the description
+- Color aura grounded in color psychology research
+- Cosmic vibe is playful, not earnest
+- Recommended artists must be real, well-known artists that genuinely fit
+- Vibe tags: lowercase hashtags, no spaces (use camelCase or dashes)
+- Deep cut analysis: music-journalist voice, specific, reference real artists/genres from their data`;
 
         const model = 'gemini-3-flash-preview';
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;

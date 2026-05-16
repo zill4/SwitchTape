@@ -14,8 +14,8 @@ h1 {
 }
 
 .form-container {
-    background: var(--color-white);
-    border: 1px solid var(--color-black);
+    background: var(--surface);
+    border: 1px solid var(--border);
     padding: 2rem;
 }
 
@@ -29,9 +29,9 @@ h1 {
 .social-button {
     width: 100%;
     padding: 0.75rem;
-    border: 1px solid var(--color-black);
-    background: var(--color-white);
-    color: var(--color-black);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
     font-size: 0.875rem;
     text-transform: uppercase;
     cursor: pointer;
@@ -42,8 +42,8 @@ h1 {
 }
 
 .social-button:hover {
-    background: var(--color-black);
-    color: var(--color-white);
+    background: var(--text);
+    color: var(--bg);
 }
 
 .social-button.google {
@@ -90,7 +90,7 @@ h1 {
     top: 50%;
     width: 45%;
     height: 1px;
-    background: var(--color-black);
+    background: var(--border);
 }
 
 .divider::before {
@@ -102,9 +102,9 @@ h1 {
 }
 
 .divider span {
-    background: var(--color-white);
+    background: var(--surface);
     padding: 0 1rem;
-    color: var(--color-black);
+    color: var(--text);
     font-size: 0.875rem;
 }
 
@@ -117,7 +117,9 @@ form {
 input {
     width: 100%;
     padding: 0.75rem;
-    border: 1px solid var(--color-black);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
     font-size: 0.875rem;
     text-transform: uppercase;
 }

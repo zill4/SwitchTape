@@ -43,6 +43,23 @@ export interface MusicReportCard {
         name: string;
         tagline: string;
     };
+    bigFive: {
+        openness: number;
+        conscientiousness: number;
+        extraversion: number;
+        agreeableness: number;
+        neuroticism: number;
+        summary: string;
+    };
+    mbtiVibe: {
+        type: string;
+        description: string;
+    };
+    colorAura: {
+        name: string;
+        hex: string;
+        meaning: string;
+    };
     metrics: {
         nostalgia: number;
         energy: number;
@@ -60,10 +77,15 @@ export interface MusicReportCard {
     }>;
     vibeTags: string[];
     topArtists: Array<{ name: string; count: number }>;
+    recommendedArtists: Array<{ name: string; reason: string }>;
     deepCutAnalysis: string[];
     compatibility: {
         mostCompatible: string;
         leastCompatible: string;
         celebrityMatch: string;
+    };
+    cosmicVibe: {
+        sign: string;
+        reading: string;
     };
 }

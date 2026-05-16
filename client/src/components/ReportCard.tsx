@@ -89,8 +89,9 @@ export function ReportCard() {
 
         try {
             const html2canvas = (await import('html2canvas')).default;
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
             const canvas = await html2canvas(reportRef.current, {
-                backgroundColor: '#ffffff',
+                backgroundColor: isDark ? '#0a0a0a' : '#ffffff',
                 scale: 2,
                 useCORS: true,
             });
@@ -195,6 +196,63 @@ export function ReportCard() {
                     <div class="type-tagline">{report.listenerType.tagline}</div>
                 </div>
 
+                {/* BIG FIVE — PSYCHOLOGY GROUNDING */}
+                {report.bigFive && (
+                    <div class="report-card">
+                        <div class="card-label">Big Five Personality (OCEAN)</div>
+                        {[
+                            { key: 'openness', label: 'Openness' },
+                            { key: 'conscientiousness', label: 'Conscientiousness' },
+                            { key: 'extraversion', label: 'Extraversion' },
+                            { key: 'agreeableness', label: 'Agreeableness' },
+                            { key: 'neuroticism', label: 'Neuroticism' },
+                        ].map((trait, i) => {
+                            const value = (report.bigFive as any)[trait.key] as number;
+                            return (
+                                <div class="bigfive-row" key={trait.key}>
+                                    <div class="bigfive-label">{trait.label}</div>
+                                    <div class="bigfive-bar-track">
+                                        <div
+                                            class={`bigfive-bar-fill ${i % 2 === 0 ? 'accent' : ''}`}
+                                            style={{ width: `${value}%` }}
+                                        ></div>
+                                    </div>
+                                    <div class="bigfive-pct">{value}</div>
+                                </div>
+                            );
+                        })}
+                        {report.bigFive.summary && (
+                            <p class="bigfive-blurb">{report.bigFive.summary}</p>
+                        )}
+                    </div>
+                )}
+
+                {/* MBTI + COLOR AURA */}
+                {(report.mbtiVibe || report.colorAura) && (
+                    <div class="facet-grid">
+                        {report.mbtiVibe && (
+                            <div class="facet-cell">
+                                <div class="facet-label">MBTI Vibe</div>
+                                <div class="facet-value">{report.mbtiVibe.type}</div>
+                                <div class="facet-desc">{report.mbtiVibe.description}</div>
+                            </div>
+                        )}
+                        {report.colorAura && (
+                            <div class="facet-cell">
+                                <div class="facet-label">Color Aura</div>
+                                <div class="facet-value">
+                                    <span
+                                        class="color-swatch"
+                                        style={{ background: report.colorAura.hex }}
+                                    ></span>
+                                    {report.colorAura.name}
+                                </div>
+                                <div class="facet-desc">{report.colorAura.meaning}</div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 {/* KEY METRICS */}
                 <div class="stats-wrapper">
                     <div class="card-label">Key Metrics</div>
@@ -291,6 +349,21 @@ export function ReportCard() {
                     </div>
                 </div>
 
+                {/* RECOMMENDED ARTISTS */}
+                {report.recommendedArtists && report.recommendedArtists.length > 0 && (
+                    <div class="report-card">
+                        <div class="card-label">You'd Probably Like</div>
+                        <div class="rec-list">
+                            {report.recommendedArtists.map((rec) => (
+                                <div class="rec-item" key={rec.name}>
+                                    <div class="rec-name">{rec.name}</div>
+                                    <div class="rec-reason">{rec.reason}</div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 <div class="section-divider"></div>
 
                 {/* DEEP CUT ANALYSIS */}
@@ -319,6 +392,16 @@ export function ReportCard() {
                         <strong>Celebrity match: </strong>{report.compatibility.celebrityMatch}
                     </div>
                 </div>
+
+                {/* COSMIC VIBE */}
+                {report.cosmicVibe && (
+                    <div class="report-card cosmic-card">
+                        <div class="card-label">Cosmic Vibe</div>
+                        <div class="cosmic-sign">{report.cosmicVibe.sign}</div>
+                        <div class="cosmic-reading">{report.cosmicVibe.reading}</div>
+                        <div class="cosmic-disclaimer">For fun — not science</div>
+                    </div>
+                )}
             </div>
 
             {/* ACTIONS */}

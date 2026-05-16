@@ -16,11 +16,12 @@
     text-transform: uppercase;
     letter-spacing: 0.02em;
     margin-bottom: 0.5rem;
+    color: var(--text);
 }
 
 .report-subtitle {
     font-size: 0.875rem;
-    color: #666;
+    color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.1em;
 }
@@ -32,16 +33,18 @@
 
 /* CARD */
 .report-card {
-    border: 1px solid var(--color-black);
+    background: var(--surface);
+    border: 1px solid var(--border);
     padding: 2rem;
     margin-bottom: 1.5rem;
+    color: var(--text);
 }
 
 .card-label {
     font-size: 0.6875rem;
     text-transform: uppercase;
     letter-spacing: 0.15em;
-    color: #666;
+    color: var(--text-muted);
     margin-bottom: 1rem;
     font-weight: 500;
 }
@@ -58,15 +61,119 @@
     font-weight: bold;
     letter-spacing: 0.1em;
     margin-bottom: 1.25rem;
+    color: var(--text);
 }
 
 .type-tagline {
     font-size: 0.9375rem;
-    color: #666;
+    color: var(--text-muted);
     font-style: italic;
     max-width: 480px;
     margin: 0 auto;
     line-height: 1.5;
+}
+
+/* MBTI / COLOR / COSMIC INLAYS */
+.facet-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    margin-bottom: 1.5rem;
+}
+
+.facet-cell {
+    border: 1px solid var(--border);
+    padding: 1.5rem;
+    margin-top: -1px;
+    margin-left: -1px;
+    background: var(--surface);
+}
+
+.facet-label {
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.facet-value {
+    font-size: 1.25rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    margin-bottom: 0.25rem;
+    color: var(--text);
+}
+
+.facet-desc {
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+.color-swatch {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 1px solid var(--border);
+    margin-right: 0.5rem;
+    vertical-align: middle;
+}
+
+/* BIG FIVE */
+.bigfive-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.bigfive-row:last-child {
+    margin-bottom: 0;
+}
+
+.bigfive-label {
+    width: 150px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    flex-shrink: 0;
+    color: var(--text);
+}
+
+.bigfive-bar-track {
+    flex: 1;
+    height: 12px;
+    background: var(--border-soft);
+    position: relative;
+}
+
+.bigfive-bar-fill {
+    height: 100%;
+    background: var(--text);
+}
+
+.bigfive-bar-fill.accent {
+    background: var(--color-red);
+}
+
+.bigfive-pct {
+    width: 48px;
+    text-align: right;
+    font-size: 0.8125rem;
+    font-weight: bold;
+    flex-shrink: 0;
+    padding-left: 0.75rem;
+    color: var(--text);
+}
+
+.bigfive-blurb {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-soft);
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+    font-style: italic;
 }
 
 /* STATS GRID */
@@ -80,11 +187,12 @@
 }
 
 .stat-cell {
-    border: 1px solid var(--color-black);
+    border: 1px solid var(--border);
     padding: 1.5rem 1rem;
     text-align: center;
     margin-top: -1px;
     margin-left: -1px;
+    background: var(--surface);
 }
 
 .stat-value {
@@ -92,6 +200,7 @@
     font-weight: bold;
     line-height: 1;
     margin-bottom: 0.25rem;
+    color: var(--text);
 }
 
 .stat-value.red {
@@ -102,7 +211,7 @@
     font-size: 0.6875rem;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: #666;
+    color: var(--text-muted);
     font-weight: 500;
 }
 
@@ -110,7 +219,7 @@
 .section-divider {
     width: 100%;
     height: 1px;
-    background: var(--color-black);
+    background: var(--border);
     margin: 2rem 0;
 }
 
@@ -131,18 +240,19 @@
     font-weight: 500;
     text-transform: uppercase;
     flex-shrink: 0;
+    color: var(--text);
 }
 
 .genre-bar-track {
     flex: 1;
     height: 24px;
-    background: #e5e5e5;
+    background: var(--border-soft);
     position: relative;
 }
 
 .genre-bar-fill {
     height: 100%;
-    background: var(--color-black);
+    background: var(--text);
 }
 
 .genre-bar-fill.accent {
@@ -156,6 +266,7 @@
     font-weight: bold;
     flex-shrink: 0;
     padding-left: 0.75rem;
+    color: var(--text);
 }
 
 /* ERA MAP */
@@ -176,17 +287,18 @@
     text-transform: uppercase;
     flex-shrink: 0;
     font-family: monospace;
+    color: var(--text);
 }
 
 .era-bar-track {
     flex: 1;
     height: 16px;
-    background: #e5e5e5;
+    background: var(--border-soft);
 }
 
 .era-bar-fill {
     height: 100%;
-    background: var(--color-black);
+    background: var(--text);
 }
 
 .era-bar-fill.highlight {
@@ -198,7 +310,7 @@
     text-align: right;
     font-size: 0.75rem;
     font-weight: 500;
-    color: #666;
+    color: var(--text-muted);
     padding-left: 0.5rem;
     flex-shrink: 0;
 }
@@ -209,7 +321,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 0.75rem 0;
-    border-bottom: 1px solid #e5e5e5;
+    border-bottom: 1px solid var(--border-soft);
 }
 
 .trait-row:last-child {
@@ -221,7 +333,7 @@
     font-size: 0.75rem;
     text-transform: uppercase;
     font-weight: 500;
-    color: #666;
+    color: var(--text-muted);
     width: 100px;
 }
 
@@ -232,7 +344,7 @@
 .trait-bar-track {
     flex: 1;
     height: 8px;
-    background: #e5e5e5;
+    background: var(--border-soft);
     margin: 0 1rem;
     position: relative;
 }
@@ -242,7 +354,7 @@
     top: 0;
     left: 0;
     height: 100%;
-    background: var(--color-black);
+    background: var(--text);
 }
 
 .trait-bar-fill.red {
@@ -257,17 +369,18 @@
 }
 
 .vibe-tag {
-    border: 1px solid var(--color-black);
+    border: 1px solid var(--border);
     padding: 0.4rem 0.75rem;
     font-size: 0.75rem;
     text-transform: lowercase;
     font-weight: 500;
     letter-spacing: 0.02em;
+    color: var(--text);
 }
 
 .vibe-tag.filled {
-    background: var(--color-black);
-    color: var(--color-white);
+    background: var(--text);
+    color: var(--bg);
 }
 
 .vibe-tag.red {
@@ -283,41 +396,81 @@
 }
 
 .artist-cell {
-    border: 1px solid var(--color-black);
+    border: 1px solid var(--border);
     padding: 1rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-top: -1px;
     margin-left: -1px;
+    background: var(--surface);
 }
 
 .artist-name {
     font-size: 0.875rem;
     font-weight: 500;
     text-transform: uppercase;
+    color: var(--text);
 }
 
 .artist-count {
     font-size: 0.75rem;
-    color: #666;
+    color: var(--text-muted);
     font-weight: 500;
 }
 
 .artist-cell.top {
-    background: var(--color-black);
-    color: var(--color-white);
+    background: var(--text);
+    color: var(--bg);
+}
+
+.artist-cell.top .artist-name {
+    color: var(--bg);
 }
 
 .artist-cell.top .artist-count {
     color: var(--color-red);
 }
 
+/* RECOMMENDED ARTISTS */
+.rec-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.rec-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-soft);
+}
+
+.rec-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.rec-name {
+    font-size: 1rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    color: var(--text);
+    letter-spacing: 0.03em;
+}
+
+.rec-reason {
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
 /* DEEP CUT ANALYSIS */
 .analysis-text {
     font-size: 0.9375rem;
     line-height: 1.7;
-    color: #333;
+    color: var(--text-soft);
     margin-bottom: 1rem;
 }
 
@@ -326,7 +479,7 @@
 }
 
 .analysis-text strong {
-    color: var(--color-black);
+    color: var(--text);
 }
 
 .analysis-highlight {
@@ -341,7 +494,7 @@
 .compat-row {
     font-size: 0.9375rem;
     line-height: 1.7;
-    color: #333;
+    color: var(--text-soft);
     margin-bottom: 1rem;
 }
 
@@ -350,7 +503,38 @@
 }
 
 .compat-row strong {
-    color: var(--color-black);
+    color: var(--text);
+}
+
+/* COSMIC */
+.cosmic-card {
+    text-align: center;
+}
+
+.cosmic-sign {
+    font-size: 1.25rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 1rem;
+    color: var(--text);
+}
+
+.cosmic-reading {
+    font-size: 0.9375rem;
+    line-height: 1.7;
+    color: var(--text-soft);
+    font-style: italic;
+    max-width: 520px;
+    margin: 0 auto;
+}
+
+.cosmic-disclaimer {
+    margin-top: 1rem;
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--text-muted);
 }
 
 /* CTA BUTTONS */
@@ -384,13 +568,13 @@
 }
 
 .btn-secondary {
-    background: var(--color-white);
-    color: var(--color-black);
-    border: 1px solid var(--color-black);
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
 }
 
 .btn-secondary:hover {
-    background: #f5f5f5;
+    background: var(--btn-secondary-hover);
 }
 
 /* CONNECT STATE */
@@ -404,10 +588,11 @@
     text-transform: uppercase;
     font-weight: bold;
     margin-bottom: 1rem;
+    color: var(--text);
 }
 
 .connect-card p {
-    color: #666;
+    color: var(--text-muted);
     margin-bottom: 2rem;
     font-size: 0.9375rem;
     line-height: 1.6;
@@ -415,8 +600,8 @@
 
 .connect-btn {
     display: inline-block;
-    background: var(--color-black);
-    color: var(--color-white);
+    background: var(--text);
+    color: var(--bg);
     padding: 0.875rem 3rem;
     text-transform: uppercase;
     font-size: 0.875rem;
@@ -428,7 +613,7 @@
 }
 
 .connect-btn:hover {
-    background: #333;
+    opacity: 0.85;
 }
 
 .connect-btn .fa-spotify {
@@ -445,7 +630,7 @@
 .loading-spinner {
     width: 48px;
     height: 48px;
-    border: 3px solid #e5e5e5;
+    border: 3px solid var(--border-soft);
     border-top-color: var(--color-red);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
@@ -460,7 +645,7 @@
     font-size: 0.875rem;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: #666;
+    color: var(--text-muted);
 }
 
 /* ERROR STATE */
@@ -502,7 +687,16 @@
         font-size: 0.75rem;
     }
 
+    .bigfive-label {
+        width: 110px;
+        font-size: 0.75rem;
+    }
+
     .artist-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .facet-grid {
         grid-template-columns: 1fr;
     }
 
