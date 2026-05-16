@@ -5,19 +5,20 @@
       <span class="divider">|</span>
       <a href="/terms">Terms of Service</a>
       <span class="divider">|</span>
-      <a href="mailto:Justin@crispcode.io">Contact</a>
+      <a href="mailto:justin@crispcode.io?subject=SwitchTape%20Inquiry">Contact</a>
     </nav>
-    <p class="copyright">© {new Date().getFullYear()} Switchtape. All rights reserved.</p>
+    <p class="copyright">© {new Date().getFullYear()} SwitchTape. All rights reserved.</p>
   </div>
 </footer>
 
 <style>
   .footer {
     width: 100%;
-    background-color: #ffffff;
-    border-top: 1px solid #e5e5e5;
+    background: var(--bg);
+    border-top: 1px solid var(--border-soft);
     padding: 0.75rem 0;
     margin-top: auto;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
   }
 
   .footer-content {
@@ -36,23 +37,23 @@
   }
 
   .footer-links a {
-    color: #666;
+    color: var(--text-muted);
     text-decoration: none;
     font-size: 0.8rem;
-    transition: color 0.2s ease;
+    transition: color 0.15s ease;
   }
 
   .footer-links a:hover {
-    color: #000;
+    color: var(--color-red);
   }
 
   .divider {
-    color: #ccc;
+    color: var(--border-soft);
     font-size: 0.8rem;
   }
 
   .copyright {
-    color: #999;
+    color: var(--text-muted);
     font-size: 0.8rem;
     margin: 0;
   }
@@ -67,4 +68,4 @@
       gap: 0.5rem;
     }
   }
-</style> 
+</style>
