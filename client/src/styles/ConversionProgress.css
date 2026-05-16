@@ -1,38 +1,109 @@
 .conversion-container {
-    max-width: 800px;
+    max-width: 720px;
     margin: 0 auto;
-    padding: 2rem;
+    padding: 2rem 1rem;
 }
 
-h1 {
-    font-size: 2rem;
-    text-transform: uppercase;
-    margin-bottom: 1rem;
-    font-weight: bold;
-}
-
-.conversion-status {
-    background: #f5f5f5;
-    padding: 1.5rem;
-    border-radius: 8px;
-    margin: 2rem 0;
+.conversion-header {
     text-align: center;
+    margin-bottom: 2.5rem;
+}
+
+.conversion-header h1 {
+    font-size: 2.25rem;
+    text-transform: uppercase;
+    font-weight: bold;
+    letter-spacing: 0.02em;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+}
+
+.conversion-subtitle {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.conversion-status-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 1.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.conversion-phase {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 0.875rem;
+}
+
+.phase-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+.phase-count {
+    font-size: 1rem;
+    font-weight: bold;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+}
+
+.conversion-bar-track {
+    width: 100%;
+    height: 6px;
+    background: var(--border-soft);
+    margin-bottom: 1rem;
+    overflow: hidden;
+}
+
+.conversion-bar-fill {
+    height: 100%;
+    background: var(--color-red);
+    transition: width 0.25s ease;
+}
+
+.conversion-bar-fill.complete {
+    background: #1DB954;
+}
+
+.conversion-status-text {
+    font-size: 0.875rem;
+    color: var(--text-soft);
+    line-height: 1.5;
+}
+
+.searching-track {
+    margin-top: 0.5rem;
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    font-style: italic;
+    /* Truncate very long track names rather than wrapping awkwardly */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .tracks-list {
-    background: white;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    margin: 2rem 0;
-    max-height: 400px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    margin-bottom: 1.5rem;
+    max-height: 360px;
     overflow-y: auto;
 }
 
 .track-item {
     display: flex;
     align-items: center;
-    padding: 1rem;
-    border-bottom: 1px solid #e0e0e0;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-soft);
+    color: var(--text);
+    font-size: 0.875rem;
 }
 
 .track-item:last-child {
@@ -40,7 +111,10 @@ h1 {
 }
 
 .track-item i {
-    margin-right: 1rem;
+    margin-right: 0.875rem;
+    flex-shrink: 0;
+    width: 16px;
+    text-align: center;
 }
 
 .track-item i.fa-check {
@@ -48,39 +122,21 @@ h1 {
 }
 
 .track-item i.fa-times {
-    color: #ff4444;
+    color: var(--color-red);
 }
 
-.save-button {
-    display: block;
-    width: 100%;
-    max-width: 300px;
-    margin: 2rem auto;
-    padding: 1rem;
-    background: #1DB954;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.3s ease;
-}
-
-.save-button:hover {
-    background: #1ed760;
+.track-item span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .error-message {
-    background: #ff4444;
-    color: white;
-    padding: 1rem;
-    border-radius: 8px;
-    margin: 1rem 0;
+    background: var(--color-red);
+    color: var(--color-white);
+    padding: 0.875rem 1.25rem;
     text-align: center;
-}
-
-.searching-track {
-    margin-top: 1rem;
-    font-size: 0.9rem;
-    color: #666;
+    text-transform: uppercase;
+    font-size: 0.8125rem;
+    letter-spacing: 0.05em;
 }
