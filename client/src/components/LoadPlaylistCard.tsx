@@ -39,7 +39,7 @@ export function LoadPlaylistCard() {
       return match ? match[2] : null;
     } else if (service === 'apple') {
       const match = url.match(/\/(playlist|album)\/.*\/(pl\.[a-zA-Z0-9]+)/);
-      return match ? match[3] : null;
+      return match ? match[2] : null;
     }
     return null;
   };
@@ -88,7 +88,7 @@ export function LoadPlaylistCard() {
       console.error('Failed to load playlist:', error);
       setError(
         service === 'apple' 
-          ? "Failed to load Apple Music playlist. Please ensure you\'re authorized." 
+          ? "Failed to load Apple Music playlist. Please ensure you're authorized." 
           : 'Failed to load Spotify playlist'
       );
     } finally {
