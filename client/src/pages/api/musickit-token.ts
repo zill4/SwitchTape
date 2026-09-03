@@ -38,18 +38,22 @@ export const POST: APIRoute = async ({ request }) => {
             requestHostname = '';
         }
 
-        const productionOrigins = ['https://switchtape.com', 'https://www.switchtape.com'];
+        const productionOrigins = [
+            'https://switchtape.com',
+            'https://www.switchtape.com',
+            'https://switch-tape.vercel.app',
+        ];
         const isProductionOrigin = requestHostname === 'switchtape.com'
-            || requestHostname === 'www.switchtape.com';
-        const origins = Array.from(new Set(
-            envOrigins.length > 0
+            || requestHostname === 'www.switchtape.com'
+            || requestHostname === 'switch-tape.vercel.app';
+        const origins = Array.from(new Set([
+            ...(envOrigins.length > 0
                 ? envOrigins
                 : isProductionOrigin
                     ? productionOrigins
-                    : requestOrigin
-                        ? [requestOrigin]
-                        : []
-        ));
+                    : []),
+            ...(requestOrigin ? [requestOrigin] : []),
+        ]));
 
         const header = { alg: 'ES256', kid: keyId };
         const now = Math.floor(Date.now() / 1000);
