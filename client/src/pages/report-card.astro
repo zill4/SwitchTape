@@ -4,5 +4,14 @@ import { ReportCard as ReportCardView } from '../components/ReportCard';
 ---
 
 <Layout title="Your Music Report Card | SwitchTape">
-  <ReportCardView client:only="preact" />
+  <div class="report-card-root">
+    <ReportCardView client:only="preact" />
+  </div>
 </Layout>
+
+<style>
+  .report-card-root {
+    display: block;
+    width: 100%;
+  }
+</style>
