@@ -280,20 +280,40 @@ export class AppleMusicService {
         }
     }
 
+    isReady(): boolean {
+        return this.isInitialized && !!this.musicKit;
+    }
+
+    /**
+     * Starts MusicKit.authorize() on the current call stack so the browser
+     * still treats it as a user gesture. Call from a click handler; do not
+     * await initialize() first.
+     */
+    authorizeFromClick(): Promise<void> {
+        if (!this.isInitialized || !this.musicKit) {
+            throw new Error('Apple Music is still loading. Wait a moment and try again.');
+        }
+
+        if (this.musicKit.isAuthorized && this.musicKit.musicUserToken) {
+            console.log('[AppleMusic] already authorized. User token present: true');
+            return Promise.resolve();
+        }
+
+        console.log('[AppleMusic] starting authorize()');
+        return this.finishAuthorize(this.musicKit.authorize());
+    }
+
     async authorize(): Promise<void> {
         if (!this.isInitialized) {
             await this.initialize();
         }
+        return this.authorizeFromClick();
+    }
 
+    private async finishAuthorize(authPromise: Promise<unknown>): Promise<void> {
         try {
-            if (this.musicKit.isAuthorized && this.musicKit.musicUserToken) {
-                console.log('[AppleMusic] already authorized. User token present: true');
-                return;
-            }
-
-            console.log('[AppleMusic] starting authorize()');
             const userToken = await this.withTimeout(
-                this.musicKit.authorize(),
+                authPromise,
                 180000,
                 'Apple Music authorization timed out. Finish the Apple sign-in popup, then check whether the popup closed or the callback was blocked.'
             );
