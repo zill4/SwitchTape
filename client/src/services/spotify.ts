@@ -19,6 +19,10 @@ export class SpotifyService {
         static async authorize(): Promise<void> {
             if (typeof window === 'undefined') return;
 
+            if (!this.clientId) {
+                throw new Error('Spotify is not configured on this site.');
+            }
+
             const scope = [
                 'playlist-modify-private',
                 'playlist-modify-public',
@@ -36,22 +40,42 @@ export class SpotifyService {
             });
             const authUrl = `https://accounts.spotify.com/authorize?${params.toString()}`;
 
-            return new Promise((resolve, reject) => {
-                const popup = window.open(
-                    authUrl,
-                    'Spotify Login',
-                    'width=500,height=700,left=200,top=100'
-                );
+            sessionStorage.setItem(
+                'spotify_oauth_return',
+                `${window.location.pathname}${window.location.search}`
+            );
+            if (window.location.pathname.includes('report-card')) {
+                sessionStorage.setItem('spotify_oauth_intent', 'report');
+            }
 
+            // Must run in the click stack. A blocked popup used to hang forever
+            // because `null?.closed` is never true.
+            const popup = window.open(
+                authUrl,
+                'spotify_login',
+                'width=500,height=700,left=200,top=100'
+            );
+
+            if (!popup) {
+                window.location.assign(authUrl);
+                return new Promise(() => {});
+            }
+
+            return new Promise((resolve, reject) => {
                 const popupTimer = setInterval(() => {
-                    if (popup?.closed) {
-                        clearInterval(popupTimer);
-                        reject(new Error('Authentication cancelled'));
+                    if (!popup.closed) return;
+                    clearInterval(popupTimer);
+                    const token = localStorage.getItem('spotify_access_token');
+                    const expiry = localStorage.getItem('spotify_token_expiry');
+                    if (token && expiry && Date.now() < parseInt(expiry, 10)) {
+                        resolve();
+                        return;
                     }
-                }, 1000);
+                    reject(new Error('Authentication cancelled'));
+                }, 500);
 
                 window.spotifyCallback = async (code: string) => {
-                    if (popup) popup.close();
+                    popup.close();
                     clearInterval(popupTimer);
 
                     try {

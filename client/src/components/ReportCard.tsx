@@ -18,6 +18,8 @@ export function ReportCard() {
     const [source, setSource] = useState<Source | null>(null);
     const [loadingMessage, setLoadingMessage] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
+    const [appleReady, setAppleReady] = useState(false);
+    const [resumeSpotify, setResumeSpotify] = useState(false);
     const reportRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -32,11 +34,20 @@ export function ReportCard() {
                 localStorage.removeItem(CACHE_KEY);
                 localStorage.removeItem(SOURCE_KEY);
             }
+        } else if (sessionStorage.getItem('spotify_oauth_intent') === 'report') {
+            sessionStorage.removeItem('spotify_oauth_intent');
+            const token = localStorage.getItem('spotify_access_token');
+            const expiry = localStorage.getItem('spotify_token_expiry');
+            if (token && expiry && Date.now() < parseInt(expiry, 10)) {
+                setResumeSpotify(true);
+            }
         }
 
-        AppleMusicService.getInstance().initialize().catch((err) => {
-            console.warn('[AppleMusic] preload failed:', err);
-        });
+        AppleMusicService.getInstance().initialize()
+            .then(() => setAppleReady(true))
+            .catch((err) => {
+                console.warn('[AppleMusic] preload failed:', err);
+            });
     }, []);
 
     const hasSpotifyToken = () => {
@@ -45,14 +56,21 @@ export function ReportCard() {
         return token && expiry && Date.now() < parseInt(expiry);
     };
 
-    const generateSpotifyReport = async () => {
+    const generateSpotifyReport = () => {
+        let authPromise: Promise<void> | null = null;
+        if (!hasSpotifyToken()) {
+            // window.open must run in the click stack, before any await.
+            authPromise = SpotifyService.authorize();
+        }
+
         setSource('spotify');
         setPhase('loading');
+        setLoadingMessage('Connecting to Spotify...');
 
+        void (async () => {
         try {
-            if (!hasSpotifyToken()) {
-                setLoadingMessage('Connecting to Spotify...');
-                await SpotifyService.authorize();
+            if (authPromise) {
+                await authPromise;
             }
 
             setLoadingMessage('Fetching your top tracks...');
@@ -76,16 +94,28 @@ export function ReportCard() {
             setErrorMessage(err.message || 'Something went wrong. Please try again.');
             setPhase('error');
         }
+        })();
     };
 
-    const generateAppleReport = async () => {
+    const generateAppleReport = () => {
+        const apple = AppleMusicService.getInstance();
+        let authPromise: Promise<void>;
+        try {
+            // MusicKit.authorize() must start in the click stack.
+            authPromise = apple.authorizeFromClick();
+        } catch (err: any) {
+            setErrorMessage(err.message || 'Apple Music is still loading. Try again in a moment.');
+            setPhase('error');
+            return;
+        }
+
         setSource('apple');
         setPhase('loading');
+        setLoadingMessage('Connecting to Apple Music...');
 
+        void (async () => {
         try {
-            const apple = AppleMusicService.getInstance();
-            setLoadingMessage('Connecting to Apple Music...');
-            await apple.authorize();
+            await authPromise;
 
             setLoadingMessage('Fetching your heavy rotation...');
             const heavyRotation = await apple.getHeavyRotation(10);
@@ -121,7 +151,14 @@ export function ReportCard() {
             setErrorMessage(err.message || 'Something went wrong. Please try again.');
             setPhase('error');
         }
+        })();
     };
+
+    useEffect(() => {
+        if (!resumeSpotify) return;
+        setResumeSpotify(false);
+        generateSpotifyReport();
+    }, [resumeSpotify]);
 
     const sendReportRequest = async (analysisInput: unknown, src: Source) => {
         setLoadingMessage('Generating your report card...');
@@ -207,13 +244,18 @@ export function ReportCard() {
                         generate a personalized music personality report.
                     </p>
                     <div class="connect-btn-group">
-                        <button class="connect-btn" onClick={generateSpotifyReport}>
+                        <button type="button" class="connect-btn" onClick={generateSpotifyReport}>
                             <i class="fa-brands fa-spotify"></i>
                             Connect Spotify
                         </button>
-                        <button class="connect-btn apple" onClick={generateAppleReport}>
+                        <button
+                            type="button"
+                            class="connect-btn apple"
+                            onClick={generateAppleReport}
+                            disabled={!appleReady}
+                        >
                             <i class="fa-brands fa-apple"></i>
-                            Connect Apple Music
+                            {appleReady ? 'Connect Apple Music' : 'Loading Apple Music...'}
                         </button>
                     </div>
                     <p class="connect-fineprint">
